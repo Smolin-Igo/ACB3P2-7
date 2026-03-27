@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title id="pageTitle">ACB3P2 - Peptide Details</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/3dmol@2.0.1/build/3Dmol-min.js"></script>
     <style>
         .structure-viewer {
             background: #f7fafc;
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 1rem;
             margin-bottom: 1.5rem;
         }
@@ -17,35 +17,37 @@
         .structure-container {
             position: relative;
             width: 100%;
-            height: 450px;
+            height: 350px;
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-radius: 6px;
+            border-radius: 8px;
             overflow: hidden;
         }
         
         .structure-controls {
             display: flex;
             gap: 0.5rem;
-            margin-top: 0.5rem;
+            margin-top: 0.75rem;
             justify-content: center;
             flex-wrap: wrap;
         }
         
         .structure-controls button {
-            padding: 0.4rem 1rem;
+            padding: 0.4rem 0.75rem;
             background: #4299e1;
             color: white;
             border: none;
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             font-weight: 500;
             transition: all 0.2s;
+            min-height: 36px;
         }
         
-        .structure-controls button:hover {
+        .structure-controls button:active {
             background: #3182ce;
+            transform: scale(0.97);
         }
         
         .structure-controls button.active {
@@ -55,11 +57,11 @@
         
         .structure-legend {
             display: flex;
-            gap: 1rem;
-            margin-top: 0.5rem;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
             justify-content: center;
-            font-size: 0.7rem;
             flex-wrap: wrap;
+            font-size: 0.65rem;
         }
         
         .legend-item {
@@ -69,8 +71,8 @@
         }
         
         .legend-color {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 2px;
         }
         
@@ -98,10 +100,6 @@
             background: #3333ff;
         }
         
-        .legend-color.sulfur {
-            background: #ffcc00;
-        }
-        
         .no-structure {
             text-align: center;
             padding: 2rem;
@@ -111,9 +109,9 @@
         .pdb-info {
             background: #ebf8ff;
             padding: 0.5rem;
-            border-radius: 4px;
+            border-radius: 6px;
             margin-top: 0.5rem;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             text-align: center;
         }
         
@@ -126,9 +124,48 @@
             text-decoration: underline;
         }
         
+        .smiles-container {
+            background: #fef5e7;
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-top: 0.5rem;
+        }
+        
+        .smiles-code {
+            font-family: monospace;
+            font-size: 0.7rem;
+            word-break: break-all;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            margin-top: 0.5rem;
+        }
+        
+        .copy-btn {
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #4299e1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.7rem;
+        }
+        
+        .copy-btn:active {
+            background: #3182ce;
+        }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+        
+        @media (min-width: 768px) {
+            .structure-container {
+                height: 450px;
+            }
         }
     </style>
 </head>
