@@ -618,13 +618,14 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
                 <div class="structure-controls">
                     <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
                     <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
-                    <button onclick="resetPDBView()">Reset View</button>
                 </div>
                 <div class="structure-legend">
-                    <div class="legend-item"><div class="legend-color alpha"></div><span>α-Helix</span></div>
-                    <div class="legend-item"><div class="legend-color beta"></div><span>β-Sheet</span></div>
-                    <div class="legend-item"><div class="legend-color coil"></div><span>Coil/Turn</span></div>
-                </div>
+    <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
+    <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
+    <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
+    <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
+    <div class="legend-item"><div class="legend-color hydrogen"></div><span>Hydrogen (H)</span></div>
+</div>
                 <div class="pdb-info">
                     <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
                     <a href="https://www.rcsb.org/structure/${pdbId || peptide.PDB}" target="_blank">View on RCSB.org</a>
