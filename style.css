@@ -523,6 +523,18 @@ td {
     border: 1px solid #cbd5e0;
 }
 
+.legend-color.gold {
+    background: #ffd700;
+}
+
+.legend-color.cyan {
+    background: #00ffff;
+}
+
+.legend-color.orange {
+    background: #ffa500;
+}
+
 .no-structure {
     text-align: center;
     padding: 1.5rem;
