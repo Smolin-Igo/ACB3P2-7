@@ -514,12 +514,10 @@ function renderPDBStructure(pdbContent, pdbId) {
 function setRepresentation(type) {
     if (!pdbViewer) return;
     
-    // Clear all styles
     pdbViewer.removeAllModels();
     pdbViewer.addModel(window.pdbContentCache, 'pdb');
     
     if (type === 'cartoon') {
-        // Cartoon representation - color by secondary structure
         pdbViewer.setStyle({}, { 
             cartoon: { 
                 colorscheme: 'ss',
@@ -527,112 +525,29 @@ function setRepresentation(type) {
             } 
         });
         currentRepresentation = 'cartoon';
-    } 
-    else if (type === 'ballAndStick') {
-        // Ball and stick representation - color by element
+    } else if (type === 'ballAndStick') {
         pdbViewer.setStyle({}, { 
             stick: { colorscheme: 'elem', radius: 0.15 },
             sphere: { colorscheme: 'elem', scale: 0.3 }
         });
         currentRepresentation = 'ballAndStick';
     }
-    else if (type === 'disulfide') {
-        // Show disulfide bridges and hydrogen bonds
-        pdbViewer.setStyle({}, { 
-            cartoon: { colorscheme: 'ss', opacity: 0.7 },
-            stick: { colorscheme: 'elem', radius: 0.1 }
-        });
-        
-        // Highlight disulfide bonds (S-S)
-        pdbViewer.addStyle({}, { 
-            disulfide: { 
-                color: 'gold',
-                radius: 0.2,
-                opacity: 0.9
-            } 
-        });
-        
-        // Highlight hydrogen bonds
-        pdbViewer.addStyle({}, { 
-            hbond: { 
-                color: 'cyan',
-                radius: 0.08,
-                opacity: 0.6
-            } 
-        });
-        
-        currentRepresentation = 'disulfide';
-    }
-    else if (type === 'contacts') {
-        // Show all atomic contacts and interactions
-        pdbViewer.setStyle({}, { 
-            cartoon: { colorscheme: 'ss', opacity: 0.6 },
-            sphere: { colorscheme: 'elem', scale: 0.2 }
-        });
-        
-        // Highlight disulfide bonds
-        pdbViewer.addStyle({}, { 
-            disulfide: { 
-                color: 'gold',
-                radius: 0.25,
-                opacity: 1
-            } 
-        });
-        
-        // Show metal ions if present
-        pdbViewer.addStyle({}, { 
-            metal: { 
-                color: 'orange',
-                radius: 0.3,
-                opacity: 0.8
-            } 
-        });
-        
-        currentRepresentation = 'contacts';
-    }
-    else if (type === 'surface') {
-        // Surface representation with transparency
-        pdbViewer.setStyle({}, { 
-            cartoon: { colorscheme: 'ss', opacity: 0.5 },
-            surface: { 
-                opacity: 0.3,
-                colorscheme: 'whiteCarbon'
-            }
-        });
-        
-        // Show disulfide bonds prominently
-        pdbViewer.addStyle({}, { 
-            disulfide: { 
-                color: 'gold',
-                radius: 0.2,
-                opacity: 1
-            } 
-        });
-        
-        currentRepresentation = 'surface';
-    }
     
     pdbViewer.zoomTo();
     pdbViewer.render();
     
-    // Update active button state
     const cartoonBtn = document.getElementById('btn-cartoon');
     const ballBtn = document.getElementById('btn-ballstick');
-    const disulfideBtn = document.getElementById('btn-disulfide');
-    const contactsBtn = document.getElementById('btn-contacts');
-    const surfaceBtn = document.getElementById('btn-surface');
     
-    if (cartoonBtn) cartoonBtn.classList.remove('active');
-    if (ballBtn) ballBtn.classList.remove('active');
-    if (disulfideBtn) disulfideBtn.classList.remove('active');
-    if (contactsBtn) contactsBtn.classList.remove('active');
-    if (surfaceBtn) surfaceBtn.classList.remove('active');
-    
-    if (type === 'cartoon' && cartoonBtn) cartoonBtn.classList.add('active');
-    else if (type === 'ballAndStick' && ballBtn) ballBtn.classList.add('active');
-    else if (type === 'disulfide' && disulfideBtn) disulfideBtn.classList.add('active');
-    else if (type === 'contacts' && contactsBtn) contactsBtn.classList.add('active');
-    else if (type === 'surface' && surfaceBtn) surfaceBtn.classList.add('active');
+    if (cartoonBtn && ballBtn) {
+        if (type === 'cartoon') {
+            cartoonBtn.classList.add('active');
+            ballBtn.classList.remove('active');
+        } else {
+            cartoonBtn.classList.remove('active');
+            ballBtn.classList.add('active');
+        }
+    }
 }
 
 function rotatePDB(direction) {
@@ -701,19 +616,16 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
                 
                 ${hasPDB ? `
                 <div class="structure-controls">
-    <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
-    <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
-    <button id="btn-disulfide" onclick="setRepresentation('disulfide')">Disulfide Bridges</button>
-    <button id="btn-contacts" onclick="setRepresentation('contacts')">Contacts & H-Bonds</button>
-    <button id="btn-surface" onclick="setRepresentation('surface')">Surface</button>
-</div>
+                    <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
+                    <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
+                    
+                </div>
                 <div class="structure-legend">
     <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
     <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
     <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
     <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
-    <div class="legend-item"><div class="legend-color gold"></div><span>Disulfide Bonds (S-S)</span></div>
-    <div class="legend-item"><div class="legend-color cyan"></div><span>Hydrogen Bonds</span></div>
+    <div class="legend-item"><div class="legend-color hydrogen"></div><span>Hydrogen (H)</span></div>
 </div>
                 <div class="pdb-info">
                     <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
