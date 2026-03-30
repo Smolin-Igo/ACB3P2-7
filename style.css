@@ -744,7 +744,11 @@ footer {
     100% { transform: rotate(360deg); }
 }
 
-/* Tablet Styles */
+/* ============================================ */
+/* DESKTOP STYLES - LARGER ELEMENTS */
+/* ============================================ */
+
+/* Tablet Styles (640px and up) */
 @media (min-width: 640px) {
     .stats-grid {
         max-width: 300px;
@@ -761,110 +765,307 @@ footer {
     }
 }
 
+/* Desktop Styles (768px and up) - INCREASED SIZES */
 @media (min-width: 768px) {
     body {
         font-size: 1rem;
     }
     
     main {
-        padding: 1.2rem;
+        padding: 1.5rem;
     }
     
     .hero {
-        padding: 2rem 1.5rem;
-        margin-bottom: 2rem;
+        padding: 2.5rem 2rem;
+        margin-bottom: 2.5rem;
+        border-radius: 20px;
     }
     
     .hero h1 {
-        font-size: 2.2rem;
+        font-size: 2.8rem;
+        margin-bottom: 0.75rem;
     }
     
     .hero .tagline {
+        font-size: 1.2rem;
+        margin-bottom: 1.75rem;
+    }
+    
+    .hero-buttons {
+        gap: 1rem;
+    }
+    
+    .btn-primary, .btn-secondary {
+        padding: 0.9rem 2rem;
         font-size: 1rem;
-        margin-bottom: 1.5rem;
+        border-radius: 10px;
+        min-height: 52px;
     }
     
     .stats-section h2, .about-section h2, .featured-section h2 {
-        font-size: 1.5rem;
-        margin-bottom: 1.25rem;
+        font-size: 1.8rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 16px;
     }
     
     .stat-number {
-        font-size: 2.5rem;
+        font-size: 3rem;
+    }
+    
+    .stat-label {
+        font-size: 0.85rem;
+    }
+    
+    .about-content {
+        padding: 1.5rem;
+        border-radius: 16px;
     }
     
     .about-text p {
-        font-size: 0.95rem;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    
+    .peptide-grid {
+        gap: 1.5rem;
+    }
+    
+    .peptide-card {
+        padding: 1.25rem;
+        border-radius: 16px;
+    }
+    
+    .card-header h3 {
+        font-size: 1.2rem;
+    }
+    
+    .card-content {
+        font-size: 0.9rem;
+    }
+    
+    .card-label {
+        min-width: 100px;
+        font-size: 0.75rem;
+    }
+    
+    .card-value {
+        font-size: 0.85rem;
+    }
+    
+    .search-panel {
+        padding: 1.5rem;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
     }
     
     .search-row {
         flex-direction: row;
         align-items: flex-end;
+        gap: 1rem;
     }
     
     .search-group {
         flex: 1;
     }
     
+    .search-group label {
+        font-size: 0.8rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .search-group input, .search-group select {
+        padding: 0.75rem;
+        font-size: 0.95rem;
+        border-radius: 10px;
+    }
+    
     .search-buttons {
         margin-top: 0;
+        gap: 1rem;
+    }
+    
+    .results-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .results-count {
+        font-size: 1rem;
+    }
+    
+    .toggle-btn {
+        padding: 0.5rem 1.2rem;
+        font-size: 0.85rem;
+        border-radius: 8px;
+    }
+    
+    table {
+        font-size: 0.9rem;
+        min-width: 800px;
+    }
+    
+    th, td {
+        padding: 1rem 0.75rem;
+    }
+    
+    th {
+        font-size: 0.8rem;
+    }
+    
+    .badge {
+        padding: 0.3rem 0.7rem;
+        font-size: 0.75rem;
+    }
+    
+    .structure-viewer {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .structure-viewer h3 {
+        font-size: 1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .structure-container {
+        height: 320px;
+        border-radius: 10px;
+    }
+    
+    .structure-controls button {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        min-height: 38px;
+        border-radius: 8px;
+    }
+    
+    .structure-legend {
+        font-size: 0.7rem;
+        gap: 1rem;
+    }
+    
+    .peptide-detail-container {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+    
+    .detail-section {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 12px;
+        border-left-width: 4px;
+    }
+    
+    .detail-section h3 {
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
     }
     
     .detail-row {
         flex-direction: row;
-        gap: 0.8rem;
+        gap: 1rem;
+        margin-bottom: 0.75rem;
     }
     
     .detail-label {
-        width: 150px;
+        width: 160px;
         flex-shrink: 0;
+        font-size: 0.8rem;
     }
     
     .detail-value {
+        font-size: 1rem;
+    }
+    
+    .page-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .page-header h1 {
+        font-size: 2rem;
+    }
+    
+    .page-header p {
         font-size: 0.95rem;
     }
     
     .footer-content {
         grid-template-columns: repeat(3, 1fr);
-        padding: 1.5rem;
+        padding: 1.8rem;
+        gap: 2rem;
     }
     
-    .structure-container {
-        height: 300px;
+    .footer-section h3 {
+        font-size: 1rem;
+        margin-bottom: 0.8rem;
+    }
+    
+    .footer-section p, .footer-section a {
+        font-size: 0.8rem;
+    }
+    
+    .footer-bottom {
+        padding: 0.8rem;
+        font-size: 0.7rem;
     }
 }
 
-/* Desktop Styles */
+/* Large Desktop Styles (1024px and up) */
 @media (min-width: 1024px) {
+    .hero {
+        padding: 3rem 2rem;
+    }
+    
     .hero h1 {
-        font-size: 2.5rem;
+        font-size: 3.2rem;
     }
     
     .hero .tagline {
-        font-size: 1.1rem;
+        font-size: 1.3rem;
     }
     
     .peptide-grid {
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
+        gap: 1.75rem;
     }
     
     .stat-number {
-        font-size: 2.8rem;
-    }
-    
-    .structure-container {
-        height: 320px;
-    }
-}
-
-@media (min-width: 1280px) {
-    .peptide-grid {
-        grid-template-columns: repeat(4, 1fr);
+        font-size: 3.5rem;
     }
     
     .structure-container {
         height: 340px;
+    }
+    
+    .detail-label {
+        width: 180px;
+    }
+}
+
+/* Extra Large Desktop Styles (1280px and up) */
+@media (min-width: 1280px) {
+    .peptide-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem;
+    }
+    
+    .hero h1 {
+        font-size: 3.5rem;
+    }
+    
+    .hero .tagline {
+        font-size: 1.4rem;
+    }
+    
+    .structure-container {
+        height: 360px;
+    }
+    
+    .detail-label {
+        width: 200px;
     }
 }
 
