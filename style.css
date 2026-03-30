@@ -1,4 +1,4 @@
-/* style.css - Ultra-Optimized for Mobile Devices */
+/* style.css - Optimized for BarrPeps Database */
 
 * {
     margin: 0;
@@ -10,11 +10,12 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     background: #f5f7fa;
     color: #2c3e50;
-    line-height: 1.4;
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    font-size: 1rem;
 }
 
-/* Navigation - Compact Mobile */
+/* Navigation - Mobile First */
 .navbar {
     background: #ffffff;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
@@ -27,7 +28,7 @@ body {
 .nav-container {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -36,29 +37,28 @@ body {
 
 .nav-brand h1 {
     color: #2c5282;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     line-height: 1.2;
 }
 
 .nav-brand p {
-    font-size: 0.55rem;
+    font-size: 0.6rem;
     color: #718096;
-    display: none;
 }
 
 .nav-links {
     display: flex;
-    gap: 0.75rem;
+    gap: 1rem;
 }
 
 .nav-links a {
     text-decoration: none;
     color: #4a5568;
     font-weight: 500;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     padding: 0.25rem 0;
-    white-space: nowrap;
+    cursor: pointer;
 }
 
 .nav-links a.active {
@@ -66,76 +66,99 @@ body {
     border-bottom: 2px solid #4299e1;
 }
 
-/* Main Content - Minimal Padding */
+/* Main Content */
 main {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 0.75rem;
-    min-height: calc(100vh - 200px);
+    padding: 1rem;
+    min-height: calc(100vh - 280px);
 }
 
-/* Hero Section - Compact */
+/* Hero Section */
 .hero {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 12px;
-    padding: 1.25rem 1rem;
-    margin-bottom: 1rem;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
     text-align: center;
 }
 
 .hero h1 {
-    font-size: 1.4rem;
-    margin-bottom: 0.4rem;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    color: white;
 }
 
 .hero .tagline {
-    font-size: 0.75rem;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
     opacity: 0.95;
+    color: white;
 }
 
 .hero-buttons {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
-/* Buttons - Compact */
+/* Buttons */
 .btn-primary, .btn-secondary {
     display: inline-block;
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.25rem;
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     transition: all 0.2s;
     cursor: pointer;
     border: none;
     text-align: center;
-    min-height: 36px;
+    min-height: 40px;
 }
 
-/* Sections - Tighter Spacing */
+.btn-primary {
+    background: #4299e1;
+    color: white;
+}
+
+.btn-primary:active {
+    background: #3182ce;
+    transform: scale(0.98);
+}
+
+.btn-secondary {
+    background: white;
+    color: #4299e1;
+    border: 2px solid white;
+}
+
+.btn-secondary:active {
+    background: rgba(255,255,255,0.9);
+    transform: scale(0.98);
+}
+
+/* Statistics Section */
 .stats-section, .about-section, .featured-section {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1.5rem;
 }
 
 .stats-section h2, .about-section h2, .featured-section h2 {
-    font-size: 1.2rem;
-    margin-bottom: 0.75rem;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
     color: #2c5282;
 }
 
-/* Statistics - 2x2 Grid Compact */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: repeat(1, 1fr);
+    gap: 1rem;
 }
 
 .stat-card {
     background: white;
-    padding: 0.75rem 0.5rem;
+    padding: 1rem;
     border-radius: 10px;
     text-align: center;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
@@ -143,88 +166,93 @@ main {
 }
 
 .stat-number {
-    font-size: 1.4rem;
+    font-size: 2rem;
     font-weight: bold;
     color: #4299e1;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
 }
 
 .stat-label {
     color: #718096;
-    font-size: 0.6rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
 }
 
-/* About Section - Compact */
+/* About Section */
 .about-content {
     background: white;
-    padding: 0.75rem;
+    padding: 1rem;
     border-radius: 10px;
     border: 1px solid #e2e8f0;
 }
 
 .about-text p {
-    font-size: 0.75rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.4;
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
 }
 
 .about-text h3 {
-    margin: 0.75rem 0 0.35rem;
+    margin: 0.75rem 0 0.5rem;
     color: #2c5282;
-    font-size: 0.85rem;
+    font-size: 1rem;
 }
 
 .about-text ul {
-    margin-left: 1rem;
-    margin-bottom: 0.5rem;
+    margin-left: 1.25rem;
+    margin-bottom: 0.75rem;
 }
 
 .about-text li {
-    margin-bottom: 0.25rem;
-    font-size: 0.7rem;
-    line-height: 1.3;
+    margin-bottom: 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
 }
 
-/* Peptide Grid - Full Width Cards */
+/* Peptide Grid */
 .peptide-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .peptide-card {
     background: white;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
-    padding: 0.75rem;
+    padding: 0.875rem;
     text-decoration: none;
     color: inherit;
     display: block;
-    transition: none;
+    transition: all 0.2s;
+}
+
+.peptide-card:active {
+    background: #f7fafc;
+    transform: scale(0.99);
 }
 
 .card-header {
     border-bottom: 2px solid #4299e1;
-    padding-bottom: 0.4rem;
-    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .card-header h3 {
     color: #2c5282;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: 600;
     word-break: break-word;
 }
 
 .card-content {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
 }
 
 .card-row {
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.4rem;
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem;
@@ -232,9 +260,9 @@ main {
 
 .card-label {
     font-weight: 600;
-    min-width: 80px;
+    min-width: 85px;
     color: #718096;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
 }
 
@@ -242,15 +270,15 @@ main {
     flex: 1;
     color: #2d3748;
     word-break: break-word;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
 }
 
-/* Search Panel - Compact */
+/* Search Panel */
 .search-panel {
     background: white;
     border-radius: 10px;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     border: 1px solid #e2e8f0;
 }
@@ -258,7 +286,7 @@ main {
 .search-row {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .search-group {
@@ -267,55 +295,56 @@ main {
 
 .search-group label {
     display: block;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.25rem;
     font-weight: 600;
     color: #4a5568;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
 }
 
 .search-group input, .search-group select {
     width: 100%;
-    padding: 0.5rem;
+    padding: 0.6rem;
     border: 1px solid #cbd5e0;
     border-radius: 8px;
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-family: inherit;
     background: white;
 }
 
 .search-buttons {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     margin-top: 0.25rem;
 }
 
-/* Results Header - Compact */
+/* Results Header */
 .results-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
-    gap: 0.5rem;
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
 }
 
 .results-count {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #2c5282;
 }
 
 .view-toggle {
     display: flex;
-    gap: 0.4rem;
+    gap: 0.5rem;
 }
 
 .toggle-btn {
-    padding: 0.3rem 0.75rem;
+    padding: 0.4rem 0.9rem;
     background: #edf2f7;
     border: 1px solid #cbd5e0;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 500;
 }
 
@@ -325,7 +354,7 @@ main {
     border-color: #4299e1;
 }
 
-/* Table View - Optimized */
+/* Table View */
 .table-view {
     overflow-x: auto;
     margin: 0 -0.5rem;
@@ -334,13 +363,13 @@ main {
 
 table {
     width: 100%;
-    min-width: 550px;
+    min-width: 600px;
     border-collapse: collapse;
-    font-size: 0.7rem;
+    font-size: 0.8rem;
 }
 
 th, td {
-    padding: 0.5rem 0.4rem;
+    padding: 0.6rem 0.5rem;
     text-align: left;
     border-bottom: 1px solid #e2e8f0;
 }
@@ -349,34 +378,58 @@ th {
     background: #f7fafc;
     font-weight: 600;
     color: #4a5568;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    cursor: pointer;
     white-space: nowrap;
 }
 
-/* Badges - Compact */
+th:hover {
+    background: #edf2f7;
+}
+
+td {
+    word-break: break-word;
+}
+
+/* Badges */
 .badge {
     display: inline-block;
-    padding: 0.15rem 0.4rem;
+    padding: 0.2rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     font-weight: 600;
     white-space: nowrap;
 }
 
-/* Structure Viewer - Mobile Optimized */
+.activity-high {
+    background: #c6f6d5;
+    color: #22543d;
+}
+
+.activity-medium {
+    background: #feebc8;
+    color: #7b341e;
+}
+
+.activity-low {
+    background: #fed7d7;
+    color: #742a2a;
+}
+
+/* Structure Viewer */
 .structure-viewer {
     background: #f7fafc;
     border-radius: 10px;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .structure-container {
     position: relative;
     width: 100%;
-    height: 280px;
+    height: 300px;
     background: #ffffff;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
@@ -385,48 +438,121 @@ th {
 
 .structure-controls {
     display: flex;
-    gap: 0.4rem;
-    margin-top: 0.6rem;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
     justify-content: center;
     flex-wrap: wrap;
 }
 
 .structure-controls button {
-    padding: 0.35rem 0.6rem;
+    padding: 0.4rem 0.8rem;
     background: #4299e1;
     color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 500;
-    min-height: 32px;
+    min-height: 34px;
+}
+
+.structure-controls button:active {
+    background: #3182ce;
+    transform: scale(0.97);
 }
 
 .structure-controls button.active {
     background: #2c5282;
 }
 
-.structure-legend {
-    display: flex;
-    gap: 0.6rem;
-    margin-top: 0.6rem;
-    justify-content: center;
-    flex-wrap: wrap;
-    font-size: 0.6rem;
+/* Hide rotation buttons */
+.structure-controls button[onclick*="rotatePDB"] {
+    display: none;
 }
 
-/* Peptide Detail Page - Compact */
+.structure-legend {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 0.65rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.legend-color.alpha {
+    background: #4299e1;
+}
+
+.legend-color.beta {
+    background: #48bb78;
+}
+
+.legend-color.coil {
+    background: #ed8936;
+}
+
+.legend-color.carbon {
+    background: #808080;
+}
+
+.legend-color.oxygen {
+    background: #ff3333;
+}
+
+.legend-color.nitrogen {
+    background: #3333ff;
+}
+
+.no-structure {
+    text-align: center;
+    padding: 2rem;
+    color: #718096;
+}
+
+.pdb-info {
+    background: #ebf8ff;
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+.pdb-info a {
+    color: #4299e1;
+    text-decoration: none;
+}
+
+.smiles-container {
+    background: #fef5e7;
+    padding: 0.5rem;
+    border-radius: 6px;
+    margin-top: 0.25rem;
+}
+
+/* Peptide Detail Page */
 .peptide-detail-container {
     background: white;
     border-radius: 10px;
-    padding: 0.75rem;
+    padding: 1rem;
     border: 1px solid #e2e8f0;
 }
 
 .detail-section {
-    margin-bottom: 1rem;
-    padding: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
     background: #f7fafc;
     border-radius: 8px;
     border-left: 3px solid #4299e1;
@@ -434,90 +560,137 @@ th {
 
 .detail-section h3 {
     color: #2c5282;
-    margin-bottom: 0.5rem;
-    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+    font-size: 1rem;
 }
 
 .detail-row {
-    margin-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
     display: flex;
     flex-direction: column;
-    gap: 0.2rem;
+    gap: 0.25rem;
 }
 
 .detail-label {
     font-weight: 600;
     color: #4a5568;
-    font-size: 0.65rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
 }
 
 .detail-value {
     color: #2d3748;
     word-break: break-word;
-    font-size: 0.75rem;
-    line-height: 1.3;
+    font-size: 0.9rem;
+    line-height: 1.4;
 }
 
-/* Loading & Error - Compact */
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background: white;
+    max-width: 450px;
+    margin: 2rem auto;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #4299e1;
+    padding-bottom: 0.5rem;
+}
+
+.modal-header h2 {
+    color: #2c5282;
+    font-size: 1.2rem;
+}
+
+.close {
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #a0aec0;
+}
+
+.close:hover {
+    color: #4a5568;
+}
+
+.modal-body p {
+    font-size: 0.85rem;
+    color: #4a5568;
+    line-height: 1.5;
+}
+
+/* Loading & Error */
 .loading, .error-message {
     text-align: center;
-    padding: 1.5rem;
-    font-size: 0.8rem;
+    padding: 2rem;
+    color: #718096;
 }
 
 .spinner {
     border: 3px solid #edf2f7;
     border-top: 3px solid #4299e1;
     border-radius: 50%;
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     animation: spin 1s linear infinite;
-    margin: 0 auto 0.75rem;
+    margin: 0 auto 1rem;
 }
 
 .error-message {
     background: #fed7d7;
     color: #742a2a;
     border-radius: 8px;
-    margin: 0.5rem;
-    padding: 1rem;
+}
+
+.text-center {
+    text-align: center;
 }
 
 .page-header {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .page-header h1 {
     color: #2c5282;
-    font-size: 1.3rem;
+    font-size: 1.6rem;
     margin-bottom: 0.25rem;
 }
 
 .page-header p {
-    font-size: 0.7rem;
+    font-size: 0.85rem;
     color: #718096;
 }
 
-/* Back Button - Compact */
-.btn-secondary[style*="margin-bottom"] {
-    margin-bottom: 0.75rem !important;
-    display: inline-block;
-    font-size: 0.7rem;
-    padding: 0.4rem 0.8rem;
-}
-
-/* Footer - Compact */
+/* Footer */
 footer {
     background: #2c3e50;
     color: white;
-    margin-top: 1.5rem;
+    margin-top: 2rem;
 }
 
 .footer-content {
     max-width: 1400px;
     margin: 0 auto;
-    padding: 1rem 0.75rem;
+    padding: 1.25rem 1rem;
     display: grid;
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -525,12 +698,12 @@ footer {
 
 .footer-section h3 {
     margin-bottom: 0.5rem;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
 }
 
 .footer-section p, .footer-section a {
-    font-size: 0.65rem;
-    line-height: 1.3;
+    font-size: 0.7rem;
+    line-height: 1.4;
 }
 
 .footer-section a {
@@ -539,16 +712,21 @@ footer {
     text-decoration: none;
     margin-right: 0.75rem;
     margin-bottom: 0.25rem;
+    cursor: pointer;
+}
+
+.footer-section a:hover {
+    color: white;
 }
 
 .footer-bottom {
     text-align: center;
-    padding: 0.5rem;
+    padding: 0.75rem;
     border-top: 1px solid #4a5568;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
 }
 
-/* Animation */
+/* Animations */
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
@@ -556,17 +734,13 @@ footer {
 
 /* Tablet Styles */
 @media (min-width: 640px) {
-    main {
-        padding: 1rem;
-    }
-    
     .stats-grid {
-        gap: 0.75rem;
+        grid-template-columns: repeat(1, 1fr);
     }
     
     .peptide-grid {
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        gap: 1.25rem;
     }
     
     .structure-container {
@@ -574,10 +748,9 @@ footer {
     }
 }
 
-/* Tablet Landscape */
 @media (min-width: 768px) {
-    .nav-brand p {
-        display: block;
+    main {
+        padding: 1.5rem;
     }
     
     .hero {
@@ -585,16 +758,17 @@ footer {
     }
     
     .hero h1 {
-        font-size: 1.8rem;
+        font-size: 2.5rem;
     }
     
     .hero .tagline {
-        font-size: 0.9rem;
+        font-size: 1.1rem;
     }
     
     .stats-grid {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
+        grid-template-columns: repeat(1, 1fr);
+        max-width: 300px;
+        margin: 0 auto;
     }
     
     .search-row {
@@ -612,11 +786,11 @@ footer {
     
     .detail-row {
         flex-direction: row;
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
     
     .detail-label {
-        width: 140px;
+        width: 150px;
         flex-shrink: 0;
     }
     
@@ -626,30 +800,25 @@ footer {
     }
 }
 
-/* Desktop */
+/* Desktop Styles */
 @media (min-width: 1024px) {
     .peptide-grid {
         grid-template-columns: repeat(3, 1fr);
-        gap: 1.25rem;
-    }
-    
-    .hero h1 {
-        font-size: 2rem;
+        gap: 1.5rem;
     }
     
     .structure-container {
-        height: 400px;
+        height: 450px;
     }
 }
 
-/* Large Desktop */
 @media (min-width: 1280px) {
     .peptide-grid {
         grid-template-columns: repeat(4, 1fr);
     }
 }
 
-/* Remove tap highlight on mobile */
+/* Touch-friendly improvements */
 @media (hover: none) and (pointer: coarse) {
     button, 
     .btn-primary, 
@@ -673,7 +842,15 @@ footer {
 
 /* Print styles */
 @media print {
-    .navbar, .search-panel, .view-toggle, .structure-controls, .hero-buttons, footer {
+    .navbar, .search-panel, .view-toggle, .structure-controls, .hero-buttons, footer, .modal {
         display: none;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .peptide-card {
+        break-inside: avoid;
     }
 }

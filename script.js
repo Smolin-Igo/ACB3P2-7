@@ -1,5 +1,5 @@
-// ACB3P2 Database - Main JavaScript
-// Anti-Cancer Blood-Brain Barrier Penetrating Peptides Database
+// BarrPeps Database - Main JavaScript
+// Blood-Brain Barrier Penetrating Peptides Database
 
 let peptidesData = [];
 let currentView = 'table';
@@ -66,6 +66,30 @@ function copySMILES(smiles) {
     }).catch(() => {
         alert('Failed to copy SMILES');
     });
+}
+
+// Show under construction modal
+function showUnderConstruction() {
+    const modal = document.getElementById('underConstructionModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+// Close modal
+function closeModal() {
+    const modal = document.getElementById('underConstructionModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('underConstructionModal');
+    if (event.target === modal) {
+        closeModal();
+    }
 }
 
 // Load CSV data
@@ -182,19 +206,9 @@ function updateHomeStats() {
     const total = peptidesData.length;
     if (total === 0) return;
     
-    const avgLength = peptidesData.reduce((sum, p) => sum + p.length, 0) / total;
-    const avgMW = peptidesData.reduce((sum, p) => sum + p.molecular_weight, 0) / total;
-    const structures = [...new Set(peptidesData.map(p => p.structure_type).filter(s => s))].length;
-    
     const totalEl = document.getElementById('totalPeptides');
-    const avgLenEl = document.getElementById('avgLength');
-    const avgMWEl = document.getElementById('avgMW');
-    const structEl = document.getElementById('structures');
     
     if (totalEl) totalEl.textContent = total;
-    if (avgLenEl) avgLenEl.textContent = avgLength.toFixed(0);
-    if (avgMWEl) avgMWEl.textContent = avgMW.toFixed(0);
-    if (structEl) structEl.textContent = structures;
 }
 
 function displayFeaturedPeptides() {
@@ -545,15 +559,8 @@ function setRepresentation(type) {
 }
 
 function rotatePDB(direction) {
-    if (!pdbViewer) return;
-    
-    switch(direction) {
-        case 'left': pdbViewer.rotate(-10, 0, 0); break;
-        case 'right': pdbViewer.rotate(10, 0, 0); break;
-        case 'up': pdbViewer.rotate(0, -10, 0); break;
-        case 'down': pdbViewer.rotate(0, 10, 0); break;
-    }
-    pdbViewer.render();
+    // Rotation functionality removed - buttons are hidden via CSS
+    return;
 }
 
 function resetPDBView() {
@@ -583,7 +590,7 @@ async function initPeptidePage() {
         return;
     }
     
-    document.title = `${peptide.peptide_name} - ACB3P2 Database`;
+    document.title = `${peptide.peptide_name} - BarrPeps Database`;
     
     let pdbContent = null;
     let pdbId = peptide.PDB && peptide.PDB !== '' ? peptide.PDB : null;
@@ -604,30 +611,23 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
     const hasPDB = pdbContent !== null;
     const hasSMILES = peptide.SMILES && peptide.SMILES !== '' && peptide.SMILES !== 'N/A';
     
-    // Format SMILES for display
-    let smilesFull = peptide.SMILES || 'N/A';
-    
     const html = `
         <div class="peptide-detail-container">
             <div style="margin-bottom: 1rem;">
-                <a href="browse.html" class="btn-secondary" style="display: inline-block; margin-bottom: 0.75rem; font-size: 0.7rem; padding: 0.35rem 0.7rem;">← Back to Browse</a>
-                <h1 style="color: #2c5282; font-size: 1.3rem; margin-bottom: 0.2rem;">${peptide.peptide_name || 'N/A'}</h1>
-                <p style="color: #718096; font-size: 0.65rem;">ID: ${peptide.id} | Last updated: ${peptide.created_date || 'N/A'}</p>
+                <a href="browse.html" class="btn-secondary" style="display: inline-block; margin-bottom: 0.75rem; font-size: 0.75rem; padding: 0.35rem 0.7rem;">← Back to Browse</a>
+                <h1 style="color: #2c5282; font-size: 1.5rem; margin-bottom: 0.2rem;">${peptide.peptide_name || 'N/A'}</h1>
+                <p style="color: #718096; font-size: 0.75rem;">ID: ${peptide.id} | Last updated: ${peptide.created_date || 'N/A'}</p>
             </div>
             
             <div class="structure-viewer">
-                <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem;">3D Structure Visualization</h3>
+                <h3 style="font-size: 1rem; margin-bottom: 0.75rem;">3D Structure Visualization</h3>
                 ${hasPDB ? '<div id="structure-viewer-pdb" class="structure-container"></div>' : '<div class="no-structure"><p>No PDB structure available for this peptide.</p></div>'}
                 
                 ${hasPDB ? `
                 <div class="structure-controls">
                     <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
                     <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
-                    <button onclick="rotatePDB('left')">←</button>
-                    <button onclick="rotatePDB('right')">→</button>
-                    <button onclick="rotatePDB('up')">↑</button>
-                    <button onclick="rotatePDB('down')">↓</button>
-                    <button onclick="resetPDBView()">Reset</button>
+                    <button onclick="resetPDBView()">Reset View</button>
                 </div>
                 <div class="structure-legend">
                     <div class="legend-item"><div class="legend-color alpha"></div><span>α-Helix</span></div>
@@ -647,8 +647,8 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
             <div class="detail-section">
                 <h3>Basic Information</h3>
                 <div class="detail-row"><span class="detail-label">Peptide Name:</span><span class="detail-value">${peptide.peptide_name || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Sequence (1-letter):</span><span class="detail-value" style="font-family: monospace; font-size: 0.65rem; word-break: break-all;">${peptide.sequence_one_letter || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Sequence (3-letter):</span><span class="detail-value" style="font-size: 0.65rem; word-break: break-all;">${peptide.sequence_three_letter || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Sequence (1-letter):</span><span class="detail-value" style="font-family: monospace; font-size: 0.75rem; word-break: break-all;">${peptide.sequence_one_letter || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Sequence (3-letter):</span><span class="detail-value" style="font-size: 0.7rem; word-break: break-all;">${peptide.sequence_three_letter || 'N/A'}</span></div>
                 <div class="detail-row"><span class="detail-label">Length:</span><span class="detail-value">${peptide.length || 'N/A'} aa</span></div>
                 <div class="detail-row"><span class="detail-label">Molecular Weight:</span><span class="detail-value">${peptide.molecular_weight ? peptide.molecular_weight.toFixed(2) : 'N/A'} Da</span></div>
                 <div class="detail-row"><span class="detail-label">Net Charge:</span><span class="detail-value">${peptide.net_charge || 'N/A'}</span></div>
@@ -664,9 +664,9 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
                     <span class="detail-label">SMILES:</span>
                     <span class="detail-value">
                         <div class="smiles-container" style="background: #fef5e7; padding: 0.5rem; border-radius: 6px; margin-top: 0.25rem;">
-                            <strong style="font-size: 0.7rem;">Simplified Molecular Input Line Entry System</strong>
-                            <div style="font-family: monospace; font-size: 0.6rem; word-break: break-all; background: white; padding: 0.5rem; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 0.4rem;">${escapeHtml(peptide.SMILES)}</div>
-                            <button class="copy-btn" onclick="copySMILES('${escapeHtml(peptide.SMILES)}')" style="margin-top: 0.4rem; padding: 0.25rem 0.6rem; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.6rem;">Copy SMILES</button>
+                            <strong style="font-size: 0.75rem;">Simplified Molecular Input Line Entry System</strong>
+                            <div style="font-family: monospace; font-size: 0.65rem; word-break: break-all; background: white; padding: 0.5rem; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 0.4rem;">${escapeHtml(peptide.SMILES)}</div>
+                            <button class="copy-btn" onclick="copySMILES('${escapeHtml(peptide.SMILES)}')" style="margin-top: 0.4rem; padding: 0.3rem 0.8rem; background: #4299e1; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.7rem;">Copy SMILES</button>
                             <p style="font-size: 0.6rem; color: #718096; margin-top: 0.4rem;">SMILES is a specification for describing chemical molecule structures using ASCII strings.</p>
                         </div>
                     </span>
@@ -737,6 +737,8 @@ window.setRepresentation = setRepresentation;
 window.rotatePDB = rotatePDB;
 window.resetPDBView = resetPDBView;
 window.copySMILES = copySMILES;
+window.showUnderConstruction = showUnderConstruction;
+window.closeModal = closeModal;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
