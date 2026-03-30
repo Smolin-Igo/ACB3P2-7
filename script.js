@@ -605,7 +605,7 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
     const html = `
         <div class="peptide-detail-container">
             <div style="margin-bottom: 1rem;">
-                <a href="browse.html" class="btn-secondary" style="display: inline-block; margin-bottom: 0.75rem; font-size: 0.75rem; padding: 0.35rem 0.7rem;">← Back to Browse</a>
+                <a href="browse.html" class="btn-secondary back-button" style="display: inline-block; text-decoration: none;">← Back to Browse</a>
                 <h1 style="color: #2c5282; font-size: 1.4rem; margin-bottom: 0.2rem;">${peptide.peptide_name || 'N/A'}</h1>
                 <p style="color: #718096; font-size: 0.7rem;">ID: ${peptide.id} | Last updated: ${peptide.created_date || 'N/A'}</p>
             </div>
