@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title id="pageTitle">ACB3P2 - Peptide Details</title>
+    <title id="pageTitle">BarrPeps - Peptide Details</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/3dmol@2.0.1/build/3Dmol-min.js"></script>
     <style>
@@ -17,7 +17,7 @@
         .structure-container {
             position: relative;
             width: 100%;
-            height: 350px;
+            height: 280px;
             background: #ffffff;
             border: 1px solid #e2e8f0;
             border-radius: 8px;
@@ -33,15 +33,14 @@
         }
         
         .structure-controls button {
-            padding: 0.4rem 0.75rem;
+            padding: 0.4rem 0.8rem;
             background: #4299e1;
             color: white;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             font-weight: 500;
-            transition: all 0.2s;
             min-height: 36px;
         }
         
@@ -52,7 +51,10 @@
         
         .structure-controls button.active {
             background: #2c5282;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .structure-controls button[onclick*="rotatePDB"] {
+            display: none;
         }
         
         .structure-legend {
@@ -88,18 +90,6 @@
             background: #ed8936;
         }
         
-        .legend-color.carbon {
-            background: #808080;
-        }
-        
-        .legend-color.oxygen {
-            background: #ff3333;
-        }
-        
-        .legend-color.nitrogen {
-            background: #3333ff;
-        }
-        
         .no-structure {
             text-align: center;
             padding: 2rem;
@@ -120,31 +110,16 @@
             text-decoration: none;
         }
         
-        .pdb-info a:hover {
-            text-decoration: underline;
-        }
-        
         .smiles-container {
             background: #fef5e7;
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-top: 0.5rem;
-        }
-        
-        .smiles-code {
-            font-family: monospace;
-            font-size: 0.7rem;
-            word-break: break-all;
-            background: white;
             padding: 0.5rem;
-            border-radius: 4px;
-            border: 1px solid #e2e8f0;
-            margin-top: 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.25rem;
         }
         
         .copy-btn {
-            margin-top: 0.5rem;
-            padding: 0.25rem 0.75rem;
+            margin-top: 0.4rem;
+            padding: 0.3rem 0.8rem;
             background: #4299e1;
             color: white;
             border: none;
@@ -153,18 +128,15 @@
             font-size: 0.7rem;
         }
         
-        .copy-btn:active {
-            background: #3182ce;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
         @media (min-width: 768px) {
             .structure-container {
-                height: 450px;
+                height: 320px;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .structure-container {
+                height: 340px;
             }
         }
     </style>
@@ -172,14 +144,14 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-brand">
-                <h1>ACB3P2</h1>
-                <p>Anti-Cancer Blood-Brain Barrier Penetrating Peptides</p>
-            </div>
+            <a href="index.html" class="nav-brand" style="text-decoration: none;">
+                <h1>BarrPeps</h1>
+                <p>Blood-Brain Barrier Penetrating Peptides</p>
+            </a>
             <div class="nav-links">
                 <a href="index.html">Home</a>
                 <a href="browse.html">Browse Database</a>
-                <a href="#about">About</a>
+                <a href="#" onclick="showUnderConstruction()">Statistics</a>
             </div>
         </div>
     </nav>
@@ -196,24 +168,38 @@
     <footer>
         <div class="footer-content">
             <div class="footer-section">
-                <h3>ACB3P2 Database</h3>
-                <p>Anti-Cancer Blood-Brain Barrier Penetrating Peptides</p>
+                <h3>BarrPeps Database</h3>
+                <p>Blood-Brain Barrier Penetrating Peptides</p>
             </div>
             <div class="footer-section">
                 <h3>Quick Links</h3>
                 <a href="index.html">Home</a>
                 <a href="browse.html">Browse Database</a>
+                <a href="#" onclick="showUnderConstruction()">About</a>
             </div>
             <div class="footer-section">
                 <h3>Data Sources</h3>
-                <p>PDB structures from RCSB.org</p>
+                <p>Curated from peer-reviewed literature</p>
                 <p>Last updated: March 2025</p>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 ACB3P2 Database. All rights reserved.</p>
+            <p>&copy; 2025 BarrPeps Database. All rights reserved.</p>
         </div>
     </footer>
+
+    <div id="underConstructionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Under Construction</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p>This section is currently under development. Please check back soon for detailed statistics and analysis.</p>
+                <button onclick="closeModal()" class="btn-primary" style="margin-top: 1rem;">Close</button>
+            </div>
+        </div>
+    </div>
 
     <script src="script.js"></script>
 </body>

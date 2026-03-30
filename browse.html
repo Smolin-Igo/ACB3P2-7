@@ -9,10 +9,10 @@
 <body>
     <nav class="navbar">
         <div class="nav-container">
-            <div class="nav-brand">
+            <a href="index.html" class="nav-brand" style="text-decoration: none;">
                 <h1>BarrPeps</h1>
                 <p>Blood-Brain Barrier Penetrating Peptides</p>
-            </div>
+            </a>
             <div class="nav-links">
                 <a href="index.html">Home</a>
                 <a href="browse.html" class="active">Browse Database</a>
@@ -24,7 +24,7 @@
     <main>
         <div class="page-header">
             <h1>Browse Peptides</h1>
-            <p>Explore the complete collection of peptides with anticancer activity and BBB penetration</p>
+            <p>Explore the complete collection of peptides crossing the blood-brain barrier</p>
         </div>
 
         <div class="search-panel">
@@ -34,12 +34,12 @@
                     <input type="text" id="searchInput" placeholder="Enter peptide name, sequence or organism...">
                 </div>
                 <div class="search-group">
-                    <label>Anticancer activity (IC50)</label>
+                    <label>BBB Permeability</label>
                     <select id="activityFilter">
                         <option value="all">All</option>
-                        <option value="high">High (&lt; 10 µM)</option>
-                        <option value="medium">Medium (10-50 µM)</option>
-                        <option value="low">Low (&gt; 50 µM)</option>
+                        <option value="high">High (logBB > 0.3)</option>
+                        <option value="medium">Medium (logBB 0-0.3)</option>
+                        <option value="low">Low (logBB < 0)</option>
                     </select>
                 </div>
                 <div class="search-group">
@@ -86,6 +86,7 @@
                 <h3>Quick Links</h3>
                 <a href="index.html">Home</a>
                 <a href="browse.html">Browse Database</a>
+                <a href="#" onclick="showUnderConstruction()">About</a>
             </div>
             <div class="footer-section">
                 <h3>Data Sources</h3>
