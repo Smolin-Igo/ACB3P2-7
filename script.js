@@ -16,33 +16,6 @@ let currentRepresentation = 'cartoon';
 let selectedAAs = [];
 
 // Helper functions
-function getActivityCategory(ic50) {
-    if (!ic50 || ic50 === '') return null;
-    const value = parseFloat(ic50);
-    if (isNaN(value)) return null;
-    if (value < 10) return 'high';
-    if (value <= 50) return 'medium';
-    return 'low';
-}
-
-function getActivityText(category) {
-    switch(category) {
-        case 'high': return 'High';
-        case 'medium': return 'Medium';
-        case 'low': return 'Low';
-        default: return 'N/A';
-    }
-}
-
-function getActivityClass(category) {
-    switch(category) {
-        case 'high': return 'activity-high';
-        case 'medium': return 'activity-medium';
-        case 'low': return 'activity-low';
-        default: return '';
-    }
-}
-
 function getPeptideUrl(peptideId, peptideName) {
     return `peptide.html?id=${peptideId}&name=${encodeURIComponent(peptideName)}`;
 }
@@ -173,10 +146,6 @@ function parseCSV(csvText) {
             peptide.net_charge = parseFloat(peptide.net_charge) || 0;
             peptide.hydrophobicity = parseFloat(peptide.hydrophobicity) || 0;
             peptide.id = i;
-            
-            if (peptide.anticancer_ic50 && peptide.anticancer_ic50 !== '') {
-                peptide.anticancer_ic50_value = parseFloat(peptide.anticancer_ic50);
-            }
             
             peptidesData.push(peptide);
         }
@@ -319,15 +288,15 @@ function checkModification(peptide, modType) {
 
 // Apply all filters
 function applyAllFilters() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const activityFilter = document.getElementById('activityFilter').value;
-    const structureFilter = document.getElementById('structureFilter').value;
-    const lengthMin = parseInt(document.getElementById('lengthMin').value) || 0;
-    const lengthMax = parseInt(document.getElementById('lengthMax').value) || 1000;
-    const pdbFilter = document.getElementById('pdbFilter').value;
-    const transportFilter = document.getElementById('transportFilter').value;
-    const modelFilter = document.getElementById('modelFilter').value;
-    const modFilter = document.getElementById('modFilter').value;
+    const searchTerm = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+    const activityFilter = document.getElementById('activityFilter') ? document.getElementById('activityFilter').value : 'all';
+    const structureFilter = document.getElementById('structureFilter') ? document.getElementById('structureFilter').value : 'all';
+    const lengthMin = (document.getElementById('lengthMin') ? parseInt(document.getElementById('lengthMin').value) : 0) || 0;
+    const lengthMax = (document.getElementById('lengthMax') ? parseInt(document.getElementById('lengthMax').value) : 100) || 1000;
+    const pdbFilter = document.getElementById('pdbFilter') ? document.getElementById('pdbFilter').value : 'all';
+    const transportFilter = document.getElementById('transportFilter') ? document.getElementById('transportFilter').value : 'all';
+    const modelFilter = document.getElementById('modelFilter') ? document.getElementById('modelFilter').value : 'all';
+    const modFilter = document.getElementById('modFilter') ? document.getElementById('modFilter').value : 'all';
     
     let tempFiltered = [...peptidesData];
     
@@ -447,7 +416,6 @@ function downloadResults() {
         return;
     }
     
-    // Define CSV headers
     const headers = [
         'ID', 'Peptide Name', 'Sequence', 'Length', 'MW (Da)', 
         'Net Charge', 'Hydrophobicity', 'Structure Type', 'Source Organism',
@@ -455,7 +423,6 @@ function downloadResults() {
         'Toxicity (Hemolysis)', 'Stability (Serum)', 'PMID', 'DOI', 'Notes'
     ];
     
-    // Create CSV rows
     const rows = filteredPeptides.map(p => [
         p.id || '',
         p.peptide_name || '',
@@ -477,12 +444,10 @@ function downloadResults() {
         (p.notes || '').replace(/,/g, ';')
     ]);
     
-    // Combine headers and rows
     const csvContent = [headers, ...rows].map(row => 
         row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
     
-    // Create download link
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -600,9 +565,9 @@ function setView(view) {
     const btns = document.querySelectorAll('.toggle-btn');
     btns.forEach(btn => btn.classList.remove('active'));
     if (view === 'table') {
-        btns[0].classList.add('active');
+        if (btns[0]) btns[0].classList.add('active');
     } else {
-        btns[1].classList.add('active');
+        if (btns[1]) btns[1].classList.add('active');
     }
     displayBrowseResults();
 }
@@ -757,7 +722,6 @@ function setRepresentation(type) {
     pdbViewer.zoomTo();
     pdbViewer.render();
     
-    // Update active button state
     const cartoonBtn = document.getElementById('btn-cartoon');
     const ballBtn = document.getElementById('btn-ballstick');
     const disulfideBtn = document.getElementById('btn-disulfide');
@@ -775,10 +739,6 @@ function setRepresentation(type) {
     else if (type === 'disulfide' && disulfideBtn) disulfideBtn.classList.add('active');
     else if (type === 'contacts' && contactsBtn) contactsBtn.classList.add('active');
     else if (type === 'surface' && surfaceBtn) surfaceBtn.classList.add('active');
-}
-
-function rotatePDB(direction) {
-    return;
 }
 
 function resetPDBView() {
@@ -863,8 +823,8 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
             <div class="detail-section">
                 <h3>Basic Information</h3>
                 <div class="detail-row"><span class="detail-label">Peptide Name:</span><span class="detail-value">${peptide.peptide_name || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Sequence (1-letter):</span><span class="detail-value" style="font-family: monospace; font-size: 0.7rem; word-break: break-all;">${peptide.sequence_one_letter || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Sequence (3-letter):</span><span class="detail-value" style="font-size: 0.65rem; word-break: break-all;">${peptide.sequence_three_letter || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Sequence (1-letter):</span><span class="detail-value" style="font-family: monospace; font-size: 0.8rem; word-break: break-all;">${peptide.sequence_one_letter || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Sequence (3-letter):</span><span class="detail-value" style="font-size: 0.7rem; word-break: break-all;">${peptide.sequence_three_letter || 'N/A'}</span></div>
                 <div class="detail-row"><span class="detail-label">Length:</span><span class="detail-value">${peptide.length || 'N/A'} aa</span></div>
                 <div class="detail-row"><span class="detail-label">Molecular Weight:</span><span class="detail-value">${peptide.molecular_weight ? peptide.molecular_weight.toFixed(2) : 'N/A'} Da</span></div>
                 <div class="detail-row"><span class="detail-label">Net Charge:</span><span class="detail-value">${peptide.net_charge || 'N/A'}</span></div>
@@ -937,7 +897,6 @@ window.resetFilters = resetAllFilters;
 window.setView = setView;
 window.sortBy = sortBy;
 window.setRepresentation = setRepresentation;
-window.rotatePDB = rotatePDB;
 window.resetPDBView = resetPDBView;
 window.copySMILES = copySMILES;
 window.showUnderConstruction = showUnderConstruction;
