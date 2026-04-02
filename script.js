@@ -1006,6 +1006,242 @@ function initBrowsePage() {
     initAASelector(); // Initialize amino acid selector
 }
 
+// Selected amino acids for filtering
+let selectedAAs = [];
+
+// Initialize compact amino acid selector
+function initAASelector() {
+    const buttons = document.querySelectorAll('.aa-btn-compact');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const aa = this.getAttribute('data-aa');
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected');
+                selectedAAs = selectedAAs.filter(a => a !== aa);
+            } else {
+                this.classList.add('selected');
+                selectedAAs.push(aa);
+            }
+        });
+    });
+}
+
+// Check if sequence contains all selected amino acids
+function containsAllAAs(sequence, requiredAAs) {
+    if (!requiredAAs || requiredAAs.length === 0) return true;
+    return requiredAAs.every(aa => sequence && sequence.includes(aa));
+}
+
+// Check modification
+function checkModification(peptide, modType) {
+    const notes = (peptide.notes || '').toLowerCase();
+    const name = (peptide.peptide_name || '').toLowerCase();
+    
+    switch(modType) {
+        case 'amidation': return notes.includes('amid') || name.includes('amid');
+        case 'acylation': return notes.includes('acyl') || name.includes('acyl');
+        case 'cyclization': return notes.includes('cycl') || notes.includes('cyclic');
+        case 'glycosylation': return notes.includes('glyco');
+        case 'phosphorylation': return notes.includes('phospho');
+        default: return true;
+    }
+}
+
+// Apply all filters
+function applyAllFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const activityFilter = document.getElementById('activityFilter').value;
+    const structureFilter = document.getElementById('structureFilter').value;
+    const lengthMin = parseInt(document.getElementById('lengthMin').value) || 0;
+    const lengthMax = parseInt(document.getElementById('lengthMax').value) || 1000;
+    const pdbFilter = document.getElementById('pdbFilter').value;
+    const transportFilter = document.getElementById('transportFilter').value;
+    const modelFilter = document.getElementById('modelFilter').value;
+    const modFilter = document.getElementById('modFilter').value;
+    
+    let tempFiltered = [...peptidesData];
+    
+    // Search filter
+    if (searchTerm) {
+        tempFiltered = tempFiltered.filter(p => 
+            (p.peptide_name && p.peptide_name.toLowerCase().includes(searchTerm)) ||
+            (p.sequence_one_letter && p.sequence_one_letter.toLowerCase().includes(searchTerm)) ||
+            (p.source_organism && p.source_organism.toLowerCase().includes(searchTerm))
+        );
+    }
+    
+    // Length filter
+    tempFiltered = tempFiltered.filter(p => p.length >= lengthMin && p.length <= lengthMax);
+    
+    // Activity/BBB permeability filter
+    if (activityFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => {
+            const permValue = parseFloat(p.bbb_permeability_value);
+            if (isNaN(permValue)) return false;
+            if (activityFilter === 'high') return permValue > 0.3;
+            if (activityFilter === 'medium') return permValue >= 0 && permValue <= 0.3;
+            if (activityFilter === 'low') return permValue < 0;
+            return true;
+        });
+    }
+    
+    // Structure type filter
+    if (structureFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => (p.structure_type || '').toLowerCase() === structureFilter.toLowerCase());
+    }
+    
+    // PDB filter
+    if (pdbFilter !== 'all') {
+        if (pdbFilter === 'yes') {
+            tempFiltered = tempFiltered.filter(p => p.PDB && p.PDB !== '' && p.PDB !== 'N/A');
+        } else {
+            tempFiltered = tempFiltered.filter(p => !p.PDB || p.PDB === '' || p.PDB === 'N/A');
+        }
+    }
+    
+    // Transport type filter
+    if (transportFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => {
+            const transport = (p.bbb_transport_type || '').toLowerCase();
+            switch(transportFilter) {
+                case 'penetration': return transport.includes('penetration') || transport.includes('cell penetrating');
+                case 'lipid': return transport.includes('lipid') || transport.includes('liposomal');
+                case 'endosomal': return transport.includes('endosomal') || transport.includes('fusion');
+                case 'carrier': return transport.includes('carrier') || transport.includes('solute');
+                case 'receptor': return transport.includes('receptor');
+                case 'passive': return transport.includes('passive');
+                default: return true;
+            }
+        });
+    }
+    
+    // Model filter
+    if (modelFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => (p.bbb_model || '').toLowerCase() === modelFilter.toLowerCase());
+    }
+    
+    // Modification filter
+    if (modFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => checkModification(p, modFilter));
+    }
+    
+    // Amino acid composition filter
+    if (selectedAAs.length > 0) {
+        tempFiltered = tempFiltered.filter(p => containsAllAAs(p.sequence_one_letter || '', selectedAAs));
+    }
+    
+    filteredPeptides = tempFiltered;
+    updateBrowseStats();
+    displayBrowseResults();
+}
+
+// Reset all filters
+function resetAllFilters() {
+    // Reset inputs
+    document.getElementById('searchInput').value = '';
+    document.getElementById('lengthMin').value = 0;
+    document.getElementById('lengthMax').value = 100;
+    document.getElementById('activityFilter').value = 'all';
+    document.getElementById('structureFilter').value = 'all';
+    document.getElementById('pdbFilter').value = 'all';
+    document.getElementById('transportFilter').value = 'all';
+    document.getElementById('modelFilter').value = 'all';
+    document.getElementById('modFilter').value = 'all';
+    
+    // Reset amino acid selections
+    selectedAAs = [];
+    document.querySelectorAll('.aa-btn-compact').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Reset results
+    filteredPeptides = [...peptidesData];
+    updateBrowseStats();
+    displayBrowseResults();
+}
+
+// Download results as CSV
+function downloadResults() {
+    if (filteredPeptides.length === 0) {
+        alert('No results to download');
+        return;
+    }
+    
+    // Define CSV headers
+    const headers = [
+        'ID', 'Peptide Name', 'Sequence', 'Length', 'MW (Da)', 
+        'Net Charge', 'Hydrophobicity', 'Structure Type', 'Source Organism',
+        'BBB Permeability', 'Transport Type', 'Model', 'PDB ID',
+        'Toxicity (Hemolysis)', 'Stability (Serum)', 'PMID', 'DOI', 'Notes'
+    ];
+    
+    // Create CSV rows
+    const rows = filteredPeptides.map(p => [
+        p.id || '',
+        p.peptide_name || '',
+        p.sequence_one_letter || '',
+        p.length || '',
+        p.molecular_weight || '',
+        p.net_charge || '',
+        p.hydrophobicity || '',
+        p.structure_type || '',
+        p.source_organism || '',
+        p.bbb_permeability_value || '',
+        p.bbb_transport_type || '',
+        p.bbb_model || '',
+        p.PDB || '',
+        p.toxicity_hemolysis || '',
+        p.stability_serum || '',
+        p.pmid || '',
+        p.doi || '',
+        (p.notes || '').replace(/,/g, ';')
+    ]);
+    
+    // Combine headers and rows
+    const csvContent = [headers, ...rows].map(row => 
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    // Create download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `barrpeps_results_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+// Update the existing search function to use applyAllFilters
+function searchPeptides() {
+    applyAllFilters();
+}
+
+// Update initBrowsePage
+function initBrowsePage() {
+    console.log('Initializing browse page');
+    filteredPeptides = [...peptidesData];
+    updateBrowseStats();
+    displayBrowseResults();
+    setupBrowseEventListeners();
+    initAASelector();
+}
+
+// Update setupBrowseEventListeners
+function setupBrowseEventListeners() {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyAllFilters();
+            }
+        });
+    }
+}
+
 // Make functions globally available
 window.searchPeptides = searchPeptides;
 window.resetFilters = resetFilters;
