@@ -12,6 +12,9 @@ let pdbViewer = null;
 let pdbContentCache = null;
 let currentRepresentation = 'cartoon';
 
+// Selected amino acids for filtering
+let selectedAAs = [];
+
 // Helper functions
 function getActivityCategory(ic50) {
     if (!ic50 || ic50 === '') return null;
@@ -223,10 +226,6 @@ function displayFeaturedPeptides() {
     
     let html = '';
     featured.forEach(peptide => {
-        const activityCat = getActivityCategory(peptide.anticancer_ic50);
-        const activityClass = getActivityClass(activityCat);
-        const activityText = getActivityText(activityCat);
-        
         html += `
             <a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="peptide-card">
                 <div class="card-header">
@@ -260,16 +259,18 @@ function initBrowsePage() {
     updateBrowseStats();
     displayBrowseResults();
     setupBrowseEventListeners();
+    initAASelector();
 }
 
 function setupBrowseEventListeners() {
     const searchInput = document.getElementById('searchInput');
-    const activityFilter = document.getElementById('activityFilter');
-    const structureFilter = document.getElementById('structureFilter');
-    
-    if (searchInput) searchInput.addEventListener('keyup', searchPeptides);
-    if (activityFilter) activityFilter.addEventListener('change', searchPeptides);
-    if (structureFilter) structureFilter.addEventListener('change', searchPeptides);
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                applyAllFilters();
+            }
+        });
+    }
 }
 
 function updateBrowseStats() {
@@ -277,737 +278,6 @@ function updateBrowseStats() {
     const countElement = document.getElementById('resultsCount');
     if (countElement) countElement.textContent = `Found peptides: ${count}`;
 }
-
-function searchPeptides() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const activityFilter = document.getElementById('activityFilter').value;
-    const structureFilter = document.getElementById('structureFilter').value;
-    
-    filteredPeptides = peptidesData.filter(peptide => {
-        const matchesSearch = searchTerm === '' || 
-            (peptide.peptide_name && peptide.peptide_name.toLowerCase().includes(searchTerm)) ||
-            (peptide.sequence_one_letter && peptide.sequence_one_letter.toLowerCase().includes(searchTerm)) ||
-            (peptide.source_organism && peptide.source_organism.toLowerCase().includes(searchTerm));
-        
-        let matchesActivity = true;
-        if (activityFilter !== 'all') {
-            const permValue = parseFloat(peptide.bbb_permeability_value);
-            if (!isNaN(permValue)) {
-                if (activityFilter === 'high') matchesActivity = permValue > 0.3;
-                else if (activityFilter === 'medium') matchesActivity = permValue >= 0 && permValue <= 0.3;
-                else if (activityFilter === 'low') matchesActivity = permValue < 0;
-            } else {
-                matchesActivity = false;
-            }
-        }
-        
-        let matchesStructure = true;
-        if (structureFilter !== 'all') {
-            matchesStructure = (peptide.structure_type || '').toLowerCase() === structureFilter.toLowerCase();
-        }
-        
-        return matchesSearch && matchesActivity && matchesStructure;
-    });
-    
-    updateBrowseStats();
-    displayBrowseResults();
-}
-
-function resetFilters() {
-    const searchInput = document.getElementById('searchInput');
-    const activityFilter = document.getElementById('activityFilter');
-    const structureFilter = document.getElementById('structureFilter');
-    
-    if (searchInput) searchInput.value = '';
-    if (activityFilter) activityFilter.value = 'all';
-    if (structureFilter) structureFilter.value = 'all';
-    
-    filteredPeptides = [...peptidesData];
-    updateBrowseStats();
-    displayBrowseResults();
-}
-
-function displayBrowseResults() {
-    const container = document.getElementById('resultsContainer');
-    if (!container) return;
-    
-    const count = filteredPeptides.length;
-    
-    if (count === 0) {
-        container.innerHTML = '<div style="text-align: center; padding: 2rem;">No peptides found</div>';
-        return;
-    }
-    
-    if (currentView === 'table') {
-        displayTableView(container);
-    } else {
-        displayCardBrowseView(container);
-    }
-}
-
-function displayTableView(container) {
-    let html = `
-        <div class="table-view">
-             <table>
-                <thead>
-                     <tr>
-                        <th onclick="sortBy('peptide_name')">Name</th>
-                        <th onclick="sortBy('sequence_one_letter')">Sequence</th>
-                        <th onclick="sortBy('length')">Length</th>
-                        <th onclick="sortBy('molecular_weight')">MW (Da)</th>
-                        <th>BBB Permeability</th>
-                        <th onclick="sortBy('source_organism')">Source</th>
-                        <th>PDB</th>
-                        <th>Details</th>
-                     </tr>
-                </thead>
-                <tbody>
-    `;
-    
-    filteredPeptides.forEach(peptide => {
-        const sequenceDisplay = peptide.sequence_one_letter ? 
-            (peptide.sequence_one_letter.length > 35 ? 
-                peptide.sequence_one_letter.substring(0, 35) + '...' : 
-                peptide.sequence_one_letter) : 'N/A';
-        
-        const permDisplay = peptide.bbb_permeability_value || 'N/A';
-        
-        html += `
-             <tr>
-                <td><strong>${peptide.peptide_name || 'N/A'}</strong></td>
-                <td style="font-family: monospace; font-size: 0.65rem;">${sequenceDisplay}</td>
-                <td>${peptide.length || 'N/A'}</td>
-                <td>${peptide.molecular_weight ? peptide.molecular_weight.toFixed(1) : 'N/A'}</td>
-                <td>${permDisplay}</td>
-                <td>${peptide.source_organism || 'N/A'}</td>
-                <td>${peptide.PDB || '—'}</td>
-                <td><a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.65rem; text-decoration: none;">View</a></td>
-             </tr>
-        `;
-    });
-    
-    html += `</tbody></table></div>`;
-    container.innerHTML = html;
-}
-
-function displayCardBrowseView(container) {
-    let html = '<div class="peptide-grid">';
-    
-    filteredPeptides.forEach(peptide => {
-        const permDisplay = peptide.bbb_permeability_value || 'N/A';
-        
-        html += `
-            <a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="peptide-card">
-                <div class="card-header">
-                    <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
-                </div>
-                <div class="card-content">
-                    <div class="card-row">
-                        <div class="card-label">Source:</div>
-                        <div class="card-value">${peptide.source_organism || 'N/A'}</div>
-                    </div>
-                    <div class="card-row">
-                        <div class="card-label">Length / MW:</div>
-                        <div class="card-value">${peptide.length || 'N/A'} aa / ${peptide.molecular_weight ? peptide.molecular_weight.toFixed(1) : 'N/A'} Da</div>
-                    </div>
-                    <div class="card-row">
-                        <div class="card-label">BBB Permeability:</div>
-                        <div class="card-value">${permDisplay}</div>
-                    </div>
-                    <div class="card-row">
-                        <div class="card-label">PDB:</div>
-                        <div class="card-value">${peptide.PDB || '—'}</div>
-                    </div>
-                </div>
-            </a>
-        `;
-    });
-    
-    html += '</div>';
-    container.innerHTML = html;
-}
-
-function setView(view) {
-    currentView = view;
-    const btns = document.querySelectorAll('.toggle-btn');
-    btns.forEach(btn => btn.classList.remove('active'));
-    if (view === 'table') {
-        btns[0].classList.add('active');
-    } else {
-        btns[1].classList.add('active');
-    }
-    displayBrowseResults();
-}
-
-function sortBy(column) {
-    if (sortColumn === column) {
-        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortColumn = column;
-        sortDirection = 'asc';
-    }
-    
-    filteredPeptides.sort((a, b) => {
-        let valA = a[column];
-        let valB = b[column];
-        
-        if (valA === undefined || valA === null || valA === '') valA = -Infinity;
-        if (valB === undefined || valB === null || valB === '') valB = -Infinity;
-        
-        if (typeof valA === 'string') {
-            valA = valA.toLowerCase();
-            valB = valB.toLowerCase();
-        }
-        
-        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-    });
-    
-    displayBrowseResults();
-}
-
-// Fetch PDB structure from RCSB API
-async function fetchPDBStructure(pdbId) {
-    if (!pdbId || pdbId === '' || pdbId === 'N/A') {
-        return null;
-    }
-    
-    try {
-        const response = await fetch(`https://files.rcsb.org/download/${pdbId}.pdb`);
-        if (!response.ok) {
-            return null;
-        }
-        return await response.text();
-    } catch (error) {
-        console.error('Error fetching PDB:', error);
-        return null;
-    }
-}
-
-// Render PDB structure with two representations
-function renderPDBStructure(pdbContent, pdbId) {
-    const container = document.getElementById('structure-viewer-pdb');
-    if (!container) return;
-    
-    if (!pdbContent) {
-        container.innerHTML = `
-            <div class="no-structure">
-                <p>No PDB structure available for this peptide.</p>
-                <p style="font-size: 0.7rem; margin-top: 0.5rem;">PDB ID: ${pdbId || 'N/A'}</p>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = '';
-    
-    pdbViewer = $3Dmol.createViewer(container, { backgroundColor: 'white' });
-    pdbViewer.addModel(pdbContent, 'pdb');
-    pdbViewer.zoomTo();
-    
-    window.pdbContentCache = pdbContent;
-    
-    setRepresentation('cartoon');
-}
-
-function setRepresentation(type) {
-    if (!pdbViewer) return;
-    
-    pdbViewer.removeAllModels();
-    pdbViewer.addModel(window.pdbContentCache, 'pdb');
-    
-    if (type === 'cartoon') {
-        pdbViewer.setStyle({}, { 
-            cartoon: { 
-                colorscheme: 'ss',
-                opacity: 0.9
-            } 
-        });
-        currentRepresentation = 'cartoon';
-    } else if (type === 'ballAndStick') {
-        pdbViewer.setStyle({}, { 
-            stick: { colorscheme: 'elem', radius: 0.15 },
-            sphere: { colorscheme: 'elem', scale: 0.3 }
-        });
-        currentRepresentation = 'ballAndStick';
-    }
-    
-    pdbViewer.zoomTo();
-    pdbViewer.render();
-    
-    const cartoonBtn = document.getElementById('btn-cartoon');
-    const ballBtn = document.getElementById('btn-ballstick');
-    
-    if (cartoonBtn && ballBtn) {
-        if (type === 'cartoon') {
-            cartoonBtn.classList.add('active');
-            ballBtn.classList.remove('active');
-        } else {
-            cartoonBtn.classList.remove('active');
-            ballBtn.classList.add('active');
-        }
-    }
-}
-
-function rotatePDB(direction) {
-    return;
-}
-
-function resetPDBView() {
-    if (!pdbViewer) return;
-    pdbViewer.zoomTo();
-    pdbViewer.render();
-}
-
-// Peptide detail page
-async function initPeptidePage() {
-    console.log('Initializing peptide page');
-    
-    const urlParams = new URLSearchParams(window.location.search);
-    const peptideId = parseInt(urlParams.get('id'));
-    const peptide = peptidesData.find(p => p.id === peptideId);
-    
-    if (!peptide) {
-        const detailContainer = document.getElementById('peptideDetail');
-        if (detailContainer) {
-            detailContainer.innerHTML = `
-                <div class="error-message">
-                    <p>Peptide not found</p>
-                    <a href="browse.html" class="btn-primary">Browse Database</a>
-                </div>
-            `;
-        }
-        return;
-    }
-    
-    document.title = `${peptide.peptide_name} - BarrPeps Database`;
-    
-    let pdbContent = null;
-    let pdbId = peptide.PDB && peptide.PDB !== '' ? peptide.PDB : null;
-    
-    if (pdbId) {
-        pdbContent = await fetchPDBStructure(pdbId);
-        window.pdbContentCache = pdbContent;
-    }
-    
-    displayPeptideDetail(peptide, pdbContent, pdbId);
-}
-
-function displayPeptideDetail(peptide, pdbContent, pdbId) {
-    const activityCat = getActivityCategory(peptide.anticancer_ic50);
-    const activityClass = getActivityClass(activityCat);
-    const activityText = getActivityText(activityCat);
-    
-    const hasPDB = pdbContent !== null;
-    const hasSMILES = peptide.SMILES && peptide.SMILES !== '' && peptide.SMILES !== 'N/A';
-    
-    const html = `
-        <div class="peptide-detail-container">
-            <div style="margin-bottom: 1rem;">
-                <a href="browse.html" class="btn-secondary back-button" style="display: inline-block; text-decoration: none;">← Back to Browse</a>
-                <h1 style="color: #2c5282; font-size: 1.4rem; margin-bottom: 0.2rem;">${peptide.peptide_name || 'N/A'}</h1>
-                <p style="color: #718096; font-size: 0.7rem;">ID: ${peptide.id} | Last updated: ${peptide.created_date || 'N/A'}</p>
-            </div>
-            
-            <div class="structure-viewer">
-                <h3 style="font-size: 0.9rem; margin-bottom: 0.6rem;">3D Structure Visualization</h3>
-                ${hasPDB ? '<div id="structure-viewer-pdb" class="structure-container"></div>' : '<div class="no-structure"><p>No PDB structure available for this peptide.</p></div>'}
-                
-                ${hasPDB ? `
-                <div class="structure-controls">
-                    <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
-                    <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
-                    
-                </div>
-                <div class="structure-legend">
-    <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
-    <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
-    <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
-    <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
-    <div class="legend-item"><div class="legend-color hydrogen"></div><span>Hydrogen (H)</span></div>
-</div>
-                <div class="pdb-info">
-                    <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
-                    <a href="https://www.rcsb.org/structure/${pdbId || peptide.PDB}" target="_blank">View on RCSB.org</a>
-                </div>
-                ` : ''}
-            </div>
-            
-            <div class="detail-section">
-                <h3>Basic Information</h3>
-                <div class="detail-row"><span class="detail-label">Peptide Name:</span><span class="detail-value">${peptide.peptide_name || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Sequence (1-letter):</span><span class="detail-value" style="font-family: monospace; font-size: 0.7rem; word-break: break-all;">${peptide.sequence_one_letter || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Sequence (3-letter):</span><span class="detail-value" style="font-size: 0.65rem; word-break: break-all;">${peptide.sequence_three_letter || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Length:</span><span class="detail-value">${peptide.length || 'N/A'} aa</span></div>
-                <div class="detail-row"><span class="detail-label">Molecular Weight:</span><span class="detail-value">${peptide.molecular_weight ? peptide.molecular_weight.toFixed(2) : 'N/A'} Da</span></div>
-                <div class="detail-row"><span class="detail-label">Net Charge:</span><span class="detail-value">${peptide.net_charge || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Hydrophobicity:</span><span class="detail-value">${peptide.hydrophobicity || 'N/A'}</span></div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>Structural Properties</h3>
-                <div class="detail-row"><span class="detail-label">Structure Type:</span><span class="detail-value">${peptide.structure_type || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">PDB ID:</span><span class="detail-value">${pdbId ? `<a href="https://www.rcsb.org/structure/${pdbId}" target="_blank">${pdbId}</a>` : (peptide.PDB || 'N/A')}</span></div>
-                ${hasSMILES ? `
-                <div class="detail-row">
-                    <span class="detail-label">SMILES:</span>
-                    <span class="detail-value">
-                        <div class="smiles-container">
-                            <strong style="font-size: 0.7rem;">Simplified Molecular Input Line Entry System</strong>
-                            <div style="font-family: monospace; font-size: 0.6rem; word-break: break-all; background: white; padding: 0.5rem; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 0.4rem;">${escapeHtml(peptide.SMILES)}</div>
-                            <button class="copy-btn" onclick="copySMILES('${escapeHtml(peptide.SMILES)}')">Copy SMILES</button>
-                            <p style="font-size: 0.6rem; color: #718096; margin-top: 0.4rem;">SMILES is a specification for describing chemical molecule structures using ASCII strings.</p>
-                        </div>
-                    </span>
-                </div>
-                ` : '<div class="detail-row"><span class="detail-label">SMILES:</span><span class="detail-value">N/A</span></div>'}
-            </div>
-            
-            <div class="detail-section">
-                <h3>Blood-Brain Barrier Penetration</h3>
-                <div class="detail-row"><span class="detail-label">Permeability Value:</span><span class="detail-value">${peptide.bbb_permeability_value || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Transport Type:</span><span class="detail-value">${peptide.bbb_transport_type || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Model:</span><span class="detail-value">${peptide.bbb_model || 'N/A'}</span></div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>Biological Source</h3>
-                <div class="detail-row"><span class="detail-label">Organism:</span><span class="detail-value">${peptide.source_organism || 'N/A'}</span></div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>Toxicity & Stability</h3>
-                <div class="detail-row"><span class="detail-label">Hemolysis (LC50):</span><span class="detail-value">${peptide.toxicity_hemolysis || 'N/A'} µM</span></div>
-                <div class="detail-row"><span class="detail-label">Serum Stability:</span><span class="detail-value">${peptide.stability_serum || 'N/A'} h</span></div>
-                <div class="detail-row"><span class="detail-label">Synergy:</span><span class="detail-value">${peptide.synergy || 'N/A'}</span></div>
-            </div>
-            
-            <div class="detail-section">
-                <h3>References</h3>
-                <div class="detail-row"><span class="detail-label">PMID:</span><span class="detail-value">${peptide.pmid || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">DOI:</span><span class="detail-value">${peptide.doi ? `<a href="https://doi.org/${peptide.doi}" target="_blank">${peptide.doi}</a>` : 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Notes:</span><span class="detail-value">${peptide.notes || 'N/A'}</span></div>
-                <div class="detail-row"><span class="detail-label">Created Date:</span><span class="detail-value">${peptide.created_date || 'N/A'}</span></div>
-            </div>
-        </div>
-    `;
-    
-    const detailContainer = document.getElementById('peptideDetail');
-    if (detailContainer) {
-        detailContainer.innerHTML = html;
-    }
-    
-    if (hasPDB && pdbContent) {
-        setTimeout(() => {
-            renderPDBStructure(pdbContent, pdbId);
-        }, 100);
-    }
-}
-
-// Advanced filters variables
-let selectedAAs = [];
-let advancedFiltersActive = false;
-
-// Toggle advanced filters panel
-function toggleAdvancedFilters() {
-    const panel = document.getElementById('advancedFilters');
-    const arrow = document.querySelector('.filter-toggle .arrow');
-    if (panel.classList.contains('show')) {
-        panel.classList.remove('show');
-        arrow.classList.remove('rotated');
-    } else {
-        panel.classList.add('show');
-        arrow.classList.add('rotated');
-    }
-}
-
-// Initialize amino acid selector buttons
-function initAASelector() {
-    const buttons = document.querySelectorAll('.aa-btn');
-    buttons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const aa = this.getAttribute('data-aa');
-            if (this.classList.contains('selected')) {
-                this.classList.remove('selected');
-                selectedAAs = selectedAAs.filter(a => a !== aa);
-            } else {
-                this.classList.add('selected');
-                selectedAAs.push(aa);
-            }
-        });
-    });
-}
-
-// Check if sequence contains all selected amino acids
-function containsAllAAs(sequence, requiredAAs) {
-    if (!requiredAAs || requiredAAs.length === 0) return true;
-    return requiredAAs.every(aa => sequence.includes(aa));
-}
-
-// Check modifications (simplified - based on notes field)
-function checkModifications(peptide, modType) {
-    const notes = (peptide.notes || '').toLowerCase();
-    const name = (peptide.peptide_name || '').toLowerCase();
-    
-    switch(modType) {
-        case 'amidation':
-            return notes.includes('amid') || notes.includes('c-terminal') || name.includes('amid');
-        case 'acylation':
-            return notes.includes('acyl') || notes.includes('n-terminal') || name.includes('acyl');
-        case 'cyclization':
-            return notes.includes('cycl') || notes.includes('cyclic');
-        case 'glycosylation':
-            return notes.includes('glyco');
-        case 'phosphorylation':
-            return notes.includes('phospho');
-        default:
-            return false;
-    }
-}
-
-// Apply advanced filters
-function applyAdvancedFilters() {
-    const lengthMin = parseInt(document.getElementById('lengthMin').value) || 0;
-    const lengthMax = parseInt(document.getElementById('lengthMax').value) || 1000;
-    const structureType = document.getElementById('structureTypeAdvanced').value;
-    const pdbFilter = document.getElementById('pdbFilter').value;
-    const transportFilter = document.getElementById('transportFilter').value;
-    const modelFilter = document.getElementById('modelFilter').value;
-    
-    // Modifications
-    const modAmidation = document.getElementById('modAmidation').checked;
-    const modAcylation = document.getElementById('modAcylation').checked;
-    const modCyclization = document.getElementById('modCyclization').checked;
-    const modGlycosylation = document.getElementById('modGlycosylation').checked;
-    const modPhosphorylation = document.getElementById('modPhosphorylation').checked;
-    
-    let tempFiltered = [...peptidesData];
-    
-    // Apply length filter
-    tempFiltered = tempFiltered.filter(p => p.length >= lengthMin && p.length <= lengthMax);
-    
-    // Apply amino acid composition filter
-    if (selectedAAs.length > 0) {
-        tempFiltered = tempFiltered.filter(p => containsAllAAs(p.sequence_one_letter || '', selectedAAs));
-    }
-    
-    // Apply structure type filter
-    if (structureType !== 'all') {
-        tempFiltered = tempFiltered.filter(p => (p.structure_type || '').toLowerCase() === structureType.toLowerCase());
-    }
-    
-    // Apply PDB availability filter
-    if (pdbFilter !== 'all') {
-        if (pdbFilter === 'yes') {
-            tempFiltered = tempFiltered.filter(p => p.PDB && p.PDB !== '' && p.PDB !== 'N/A');
-        } else {
-            tempFiltered = tempFiltered.filter(p => !p.PDB || p.PDB === '' || p.PDB === 'N/A');
-        }
-    }
-    
-    // Apply transport type filter
-    if (transportFilter !== 'all') {
-        tempFiltered = tempFiltered.filter(p => {
-            const transport = (p.bbb_transport_type || '').toLowerCase();
-            switch(transportFilter) {
-                case 'penetration':
-                    return transport.includes('penetration') || transport.includes('cell penetrating');
-                case 'physical':
-                    return transport.includes('physical');
-                case 'lipid':
-                    return transport.includes('lipid') || transport.includes('liposomal');
-                case 'endosomal':
-                    return transport.includes('endosomal') || transport.includes('fusion');
-                case 'carrier':
-                    return transport.includes('carrier') || transport.includes('solute');
-                case 'receptor':
-                    return transport.includes('receptor');
-                case 'passive':
-                    return transport.includes('passive');
-                default:
-                    return true;
-            }
-        });
-    }
-    
-    // Apply model filter
-    if (modelFilter !== 'all') {
-        tempFiltered = tempFiltered.filter(p => (p.bbb_model || '').toLowerCase() === modelFilter.toLowerCase());
-    }
-    
-    // Apply modifications filters
-    if (modAmidation) {
-        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'amidation'));
-    }
-    if (modAcylation) {
-        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'acylation'));
-    }
-    if (modCyclization) {
-        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'cyclization'));
-    }
-    if (modGlycosylation) {
-        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'glycosylation'));
-    }
-    if (modPhosphorylation) {
-        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'phosphorylation'));
-    }
-    
-    filteredPeptides = tempFiltered;
-    advancedFiltersActive = true;
-    updateBrowseStats();
-    displayBrowseResults();
-}
-
-// Clear advanced filters
-function clearAdvancedFilters() {
-    // Reset length inputs
-    document.getElementById('lengthMin').value = 0;
-    document.getElementById('lengthMax').value = 100;
-    
-    // Clear amino acid selections
-    selectedAAs = [];
-    document.querySelectorAll('.aa-btn').forEach(btn => {
-        btn.classList.remove('selected');
-    });
-    
-    // Reset selects
-    document.getElementById('structureTypeAdvanced').value = 'all';
-    document.getElementById('pdbFilter').value = 'all';
-    document.getElementById('transportFilter').value = 'all';
-    document.getElementById('modelFilter').value = 'all';
-    
-    // Reset checkboxes
-    document.getElementById('modAmidation').checked = false;
-    document.getElementById('modAcylation').checked = false;
-    document.getElementById('modCyclization').checked = false;
-    document.getElementById('modGlycosylation').checked = false;
-    document.getElementById('modPhosphorylation').checked = false;
-    
-    // Reset main filters as well
-    document.getElementById('searchInput').value = '';
-    document.getElementById('activityFilter').value = 'all';
-    document.getElementById('structureFilter').value = 'all';
-    
-    // Reset filtered peptides
-    filteredPeptides = [...peptidesData];
-    advancedFiltersActive = false;
-    updateBrowseStats();
-    displayBrowseResults();
-}
-
-// Update the existing searchPeptides function to work with advanced filters
-function searchPeptides() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const activityFilter = document.getElementById('activityFilter').value;
-    const structureFilter = document.getElementById('structureFilter').value;
-    
-    let tempFiltered = [...peptidesData];
-    
-    // Apply main search filters
-    tempFiltered = tempFiltered.filter(peptide => {
-        const matchesSearch = searchTerm === '' || 
-            (peptide.peptide_name && peptide.peptide_name.toLowerCase().includes(searchTerm)) ||
-            (peptide.sequence_one_letter && peptide.sequence_one_letter.toLowerCase().includes(searchTerm)) ||
-            (peptide.source_organism && peptide.source_organism.toLowerCase().includes(searchTerm));
-        
-        let matchesActivity = true;
-        if (activityFilter !== 'all') {
-            const permValue = parseFloat(peptide.bbb_permeability_value);
-            if (!isNaN(permValue)) {
-                if (activityFilter === 'high') matchesActivity = permValue > 0.3;
-                else if (activityFilter === 'medium') matchesActivity = permValue >= 0 && permValue <= 0.3;
-                else if (activityFilter === 'low') matchesActivity = permValue < 0;
-            } else {
-                matchesActivity = false;
-            }
-        }
-        
-        let matchesStructure = true;
-        if (structureFilter !== 'all') {
-            matchesStructure = (peptide.structure_type || '').toLowerCase() === structureFilter.toLowerCase();
-        }
-        
-        return matchesSearch && matchesActivity && matchesStructure;
-    });
-    
-    // If advanced filters are active, apply them too
-    if (advancedFiltersActive) {
-        const lengthMin = parseInt(document.getElementById('lengthMin').value) || 0;
-        const lengthMax = parseInt(document.getElementById('lengthMax').value) || 1000;
-        const structureType = document.getElementById('structureTypeAdvanced').value;
-        const pdbFilter = document.getElementById('pdbFilter').value;
-        const transportFilter = document.getElementById('transportFilter').value;
-        const modelFilter = document.getElementById('modelFilter').value;
-        
-        const modAmidation = document.getElementById('modAmidation').checked;
-        const modAcylation = document.getElementById('modAcylation').checked;
-        const modCyclization = document.getElementById('modCyclization').checked;
-        const modGlycosylation = document.getElementById('modGlycosylation').checked;
-        const modPhosphorylation = document.getElementById('modPhosphorylation').checked;
-        
-        tempFiltered = tempFiltered.filter(p => p.length >= lengthMin && p.length <= lengthMax);
-        
-        if (selectedAAs.length > 0) {
-            tempFiltered = tempFiltered.filter(p => containsAllAAs(p.sequence_one_letter || '', selectedAAs));
-        }
-        
-        if (structureType !== 'all') {
-            tempFiltered = tempFiltered.filter(p => (p.structure_type || '').toLowerCase() === structureType.toLowerCase());
-        }
-        
-        if (pdbFilter !== 'all') {
-            if (pdbFilter === 'yes') {
-                tempFiltered = tempFiltered.filter(p => p.PDB && p.PDB !== '' && p.PDB !== 'N/A');
-            } else {
-                tempFiltered = tempFiltered.filter(p => !p.PDB || p.PDB === '' || p.PDB === 'N/A');
-            }
-        }
-        
-        if (transportFilter !== 'all') {
-            tempFiltered = tempFiltered.filter(p => {
-                const transport = (p.bbb_transport_type || '').toLowerCase();
-                switch(transportFilter) {
-                    case 'penetration': return transport.includes('penetration') || transport.includes('cell penetrating');
-                    case 'physical': return transport.includes('physical');
-                    case 'lipid': return transport.includes('lipid') || transport.includes('liposomal');
-                    case 'endosomal': return transport.includes('endosomal') || transport.includes('fusion');
-                    case 'carrier': return transport.includes('carrier') || transport.includes('solute');
-                    case 'receptor': return transport.includes('receptor');
-                    case 'passive': return transport.includes('passive');
-                    default: return true;
-                }
-            });
-        }
-        
-        if (modelFilter !== 'all') {
-            tempFiltered = tempFiltered.filter(p => (p.bbb_model || '').toLowerCase() === modelFilter.toLowerCase());
-        }
-        
-        if (modAmidation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'amidation'));
-        if (modAcylation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'acylation'));
-        if (modCyclization) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'cyclization'));
-        if (modGlycosylation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'glycosylation'));
-        if (modPhosphorylation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'phosphorylation'));
-    }
-    
-    filteredPeptides = tempFiltered;
-    updateBrowseStats();
-    displayBrowseResults();
-}
-
-// Update the initBrowsePage function to include AA selector initialization
-function initBrowsePage() {
-    console.log('Initializing browse page');
-    filteredPeptides = [...peptidesData];
-    updateBrowseStats();
-    displayBrowseResults();
-    setupBrowseEventListeners();
-    initAASelector(); // Initialize amino acid selector
-}
-
-// Selected amino acids for filtering
-let selectedAAs = [];
 
 // Initialize compact amino acid selector
 function initAASelector() {
@@ -1138,15 +408,25 @@ function applyAllFilters() {
 // Reset all filters
 function resetAllFilters() {
     // Reset inputs
-    document.getElementById('searchInput').value = '';
-    document.getElementById('lengthMin').value = 0;
-    document.getElementById('lengthMax').value = 100;
-    document.getElementById('activityFilter').value = 'all';
-    document.getElementById('structureFilter').value = 'all';
-    document.getElementById('pdbFilter').value = 'all';
-    document.getElementById('transportFilter').value = 'all';
-    document.getElementById('modelFilter').value = 'all';
-    document.getElementById('modFilter').value = 'all';
+    const searchInput = document.getElementById('searchInput');
+    const lengthMin = document.getElementById('lengthMin');
+    const lengthMax = document.getElementById('lengthMax');
+    const activityFilter = document.getElementById('activityFilter');
+    const structureFilter = document.getElementById('structureFilter');
+    const pdbFilter = document.getElementById('pdbFilter');
+    const transportFilter = document.getElementById('transportFilter');
+    const modelFilter = document.getElementById('modelFilter');
+    const modFilter = document.getElementById('modFilter');
+    
+    if (searchInput) searchInput.value = '';
+    if (lengthMin) lengthMin.value = 0;
+    if (lengthMax) lengthMax.value = 100;
+    if (activityFilter) activityFilter.value = 'all';
+    if (structureFilter) structureFilter.value = 'all';
+    if (pdbFilter) pdbFilter.value = 'all';
+    if (transportFilter) transportFilter.value = 'all';
+    if (modelFilter) modelFilter.value = 'all';
+    if (modFilter) modFilter.value = 'all';
     
     // Reset amino acid selections
     selectedAAs = [];
@@ -1215,36 +495,445 @@ function downloadResults() {
     URL.revokeObjectURL(url);
 }
 
-// Update the existing search function to use applyAllFilters
-function searchPeptides() {
-    applyAllFilters();
+function displayBrowseResults() {
+    const container = document.getElementById('resultsContainer');
+    if (!container) return;
+    
+    const count = filteredPeptides.length;
+    
+    if (count === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 2rem;">No peptides found</div>';
+        return;
+    }
+    
+    if (currentView === 'table') {
+        displayTableView(container);
+    } else {
+        displayCardBrowseView(container);
+    }
 }
 
-// Update initBrowsePage
-function initBrowsePage() {
-    console.log('Initializing browse page');
-    filteredPeptides = [...peptidesData];
-    updateBrowseStats();
+function displayTableView(container) {
+    let html = `
+        <div class="table-view">
+            <table>
+                <thead>
+                    <tr>
+                        <th onclick="sortBy('peptide_name')">Name</th>
+                        <th onclick="sortBy('sequence_one_letter')">Sequence</th>
+                        <th onclick="sortBy('length')">Length</th>
+                        <th onclick="sortBy('molecular_weight')">MW (Da)</th>
+                        <th>BBB Permeability</th>
+                        <th onclick="sortBy('source_organism')">Source</th>
+                        <th>PDB</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    filteredPeptides.forEach(peptide => {
+        const sequenceDisplay = peptide.sequence_one_letter ? 
+            (peptide.sequence_one_letter.length > 35 ? 
+                peptide.sequence_one_letter.substring(0, 35) + '...' : 
+                peptide.sequence_one_letter) : 'N/A';
+        
+        const permDisplay = peptide.bbb_permeability_value || 'N/A';
+        
+        html += `
+            <tr>
+                <td><strong>${peptide.peptide_name || 'N/A'}</strong></td>
+                <td style="font-family: monospace; font-size: 0.65rem;">${sequenceDisplay}</td>
+                <td>${peptide.length || 'N/A'}</td>
+                <td>${peptide.molecular_weight ? peptide.molecular_weight.toFixed(1) : 'N/A'}</td>
+                <td>${permDisplay}</td>
+                <td>${peptide.source_organism || 'N/A'}</td>
+                <td>${peptide.PDB || '—'}</td>
+                <td><a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.65rem; text-decoration: none;">View</a></td>
+            </tr>
+        `;
+    });
+    
+    html += `</tbody></table></div>`;
+    container.innerHTML = html;
+}
+
+function displayCardBrowseView(container) {
+    let html = '<div class="peptide-grid">';
+    
+    filteredPeptides.forEach(peptide => {
+        const permDisplay = peptide.bbb_permeability_value || 'N/A';
+        
+        html += `
+            <a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="peptide-card">
+                <div class="card-header">
+                    <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
+                </div>
+                <div class="card-content">
+                    <div class="card-row">
+                        <div class="card-label">Source:</div>
+                        <div class="card-value">${peptide.source_organism || 'N/A'}</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">Length / MW:</div>
+                        <div class="card-value">${peptide.length || 'N/A'} aa / ${peptide.molecular_weight ? peptide.molecular_weight.toFixed(1) : 'N/A'} Da</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">BBB Permeability:</div>
+                        <div class="card-value">${permDisplay}</div>
+                    </div>
+                    <div class="card-row">
+                        <div class="card-label">PDB:</div>
+                        <div class="card-value">${peptide.PDB || '—'}</div>
+                    </div>
+                </div>
+            </a>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function setView(view) {
+    currentView = view;
+    const btns = document.querySelectorAll('.toggle-btn');
+    btns.forEach(btn => btn.classList.remove('active'));
+    if (view === 'table') {
+        btns[0].classList.add('active');
+    } else {
+        btns[1].classList.add('active');
+    }
     displayBrowseResults();
-    setupBrowseEventListeners();
-    initAASelector();
 }
 
-// Update setupBrowseEventListeners
-function setupBrowseEventListeners() {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                applyAllFilters();
+function sortBy(column) {
+    if (sortColumn === column) {
+        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortColumn = column;
+        sortDirection = 'asc';
+    }
+    
+    filteredPeptides.sort((a, b) => {
+        let valA = a[column];
+        let valB = b[column];
+        
+        if (valA === undefined || valA === null || valA === '') valA = -Infinity;
+        if (valB === undefined || valB === null || valB === '') valB = -Infinity;
+        
+        if (typeof valA === 'string') {
+            valA = valA.toLowerCase();
+            valB = valB.toLowerCase();
+        }
+        
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    displayBrowseResults();
+}
+
+// Fetch PDB structure from RCSB API
+async function fetchPDBStructure(pdbId) {
+    if (!pdbId || pdbId === '' || pdbId === 'N/A') {
+        return null;
+    }
+    
+    try {
+        const response = await fetch(`https://files.rcsb.org/download/${pdbId}.pdb`);
+        if (!response.ok) {
+            return null;
+        }
+        return await response.text();
+    } catch (error) {
+        console.error('Error fetching PDB:', error);
+        return null;
+    }
+}
+
+// Render PDB structure with multiple representations
+function renderPDBStructure(pdbContent, pdbId) {
+    const container = document.getElementById('structure-viewer-pdb');
+    if (!container) return;
+    
+    if (!pdbContent) {
+        container.innerHTML = `
+            <div class="no-structure">
+                <p>No PDB structure available for this peptide.</p>
+                <p style="font-size: 0.7rem; margin-top: 0.5rem;">PDB ID: ${pdbId || 'N/A'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    pdbViewer = $3Dmol.createViewer(container, { backgroundColor: 'white' });
+    pdbViewer.addModel(pdbContent, 'pdb');
+    pdbViewer.zoomTo();
+    
+    window.pdbContentCache = pdbContent;
+    
+    setRepresentation('cartoon');
+}
+
+function setRepresentation(type) {
+    if (!pdbViewer) return;
+    
+    pdbViewer.removeAllModels();
+    pdbViewer.addModel(window.pdbContentCache, 'pdb');
+    
+    if (type === 'cartoon') {
+        pdbViewer.setStyle({}, { 
+            cartoon: { 
+                colorscheme: 'ss',
+                opacity: 0.9
+            } 
+        });
+        currentRepresentation = 'cartoon';
+    } 
+    else if (type === 'ballAndStick') {
+        pdbViewer.setStyle({}, { 
+            stick: { colorscheme: 'elem', radius: 0.15 },
+            sphere: { colorscheme: 'elem', scale: 0.3 }
+        });
+        currentRepresentation = 'ballAndStick';
+    }
+    else if (type === 'disulfide') {
+        pdbViewer.setStyle({}, { 
+            cartoon: { colorscheme: 'ss', opacity: 0.7 },
+            stick: { colorscheme: 'elem', radius: 0.1 }
+        });
+        pdbViewer.addStyle({}, { 
+            disulfide: { 
+                color: 'gold',
+                radius: 0.2,
+                opacity: 0.9
+            } 
+        });
+        pdbViewer.addStyle({}, { 
+            hbond: { 
+                color: 'cyan',
+                radius: 0.08,
+                opacity: 0.6
+            } 
+        });
+        currentRepresentation = 'disulfide';
+    }
+    else if (type === 'contacts') {
+        pdbViewer.setStyle({}, { 
+            cartoon: { colorscheme: 'ss', opacity: 0.6 },
+            sphere: { colorscheme: 'elem', scale: 0.2 }
+        });
+        pdbViewer.addStyle({}, { 
+            disulfide: { 
+                color: 'gold',
+                radius: 0.25,
+                opacity: 1
+            } 
+        });
+        currentRepresentation = 'contacts';
+    }
+    else if (type === 'surface') {
+        pdbViewer.setStyle({}, { 
+            cartoon: { colorscheme: 'ss', opacity: 0.5 },
+            surface: { 
+                opacity: 0.3,
+                colorscheme: 'whiteCarbon'
             }
         });
+        pdbViewer.addStyle({}, { 
+            disulfide: { 
+                color: 'gold',
+                radius: 0.2,
+                opacity: 1
+            } 
+        });
+        currentRepresentation = 'surface';
+    }
+    
+    pdbViewer.zoomTo();
+    pdbViewer.render();
+    
+    // Update active button state
+    const cartoonBtn = document.getElementById('btn-cartoon');
+    const ballBtn = document.getElementById('btn-ballstick');
+    const disulfideBtn = document.getElementById('btn-disulfide');
+    const contactsBtn = document.getElementById('btn-contacts');
+    const surfaceBtn = document.getElementById('btn-surface');
+    
+    if (cartoonBtn) cartoonBtn.classList.remove('active');
+    if (ballBtn) ballBtn.classList.remove('active');
+    if (disulfideBtn) disulfideBtn.classList.remove('active');
+    if (contactsBtn) contactsBtn.classList.remove('active');
+    if (surfaceBtn) surfaceBtn.classList.remove('active');
+    
+    if (type === 'cartoon' && cartoonBtn) cartoonBtn.classList.add('active');
+    else if (type === 'ballAndStick' && ballBtn) ballBtn.classList.add('active');
+    else if (type === 'disulfide' && disulfideBtn) disulfideBtn.classList.add('active');
+    else if (type === 'contacts' && contactsBtn) contactsBtn.classList.add('active');
+    else if (type === 'surface' && surfaceBtn) surfaceBtn.classList.add('active');
+}
+
+function rotatePDB(direction) {
+    return;
+}
+
+function resetPDBView() {
+    if (!pdbViewer) return;
+    pdbViewer.zoomTo();
+    pdbViewer.render();
+}
+
+// Peptide detail page
+async function initPeptidePage() {
+    console.log('Initializing peptide page');
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const peptideId = parseInt(urlParams.get('id'));
+    const peptide = peptidesData.find(p => p.id === peptideId);
+    
+    if (!peptide) {
+        const detailContainer = document.getElementById('peptideDetail');
+        if (detailContainer) {
+            detailContainer.innerHTML = `
+                <div class="error-message">
+                    <p>Peptide not found</p>
+                    <a href="browse.html" class="btn-primary">Browse Database</a>
+                </div>
+            `;
+        }
+        return;
+    }
+    
+    document.title = `${peptide.peptide_name} - BarrPeps Database`;
+    
+    let pdbContent = null;
+    let pdbId = peptide.PDB && peptide.PDB !== '' ? peptide.PDB : null;
+    
+    if (pdbId) {
+        pdbContent = await fetchPDBStructure(pdbId);
+        window.pdbContentCache = pdbContent;
+    }
+    
+    displayPeptideDetail(peptide, pdbContent, pdbId);
+}
+
+function displayPeptideDetail(peptide, pdbContent, pdbId) {
+    const hasPDB = pdbContent !== null;
+    const hasSMILES = peptide.SMILES && peptide.SMILES !== '' && peptide.SMILES !== 'N/A';
+    
+    const html = `
+        <div class="peptide-detail-container">
+            <div style="margin-bottom: 1rem;">
+                <a href="browse.html" class="btn-secondary back-button" style="display: inline-block; text-decoration: none;">← Back to Browse</a>
+                <h1 style="color: #2c5282; font-size: 1.4rem; margin-bottom: 0.2rem;">${peptide.peptide_name || 'N/A'}</h1>
+                <p style="color: #718096; font-size: 0.7rem;">ID: ${peptide.id} | Last updated: ${peptide.created_date || 'N/A'}</p>
+            </div>
+            
+            <div class="structure-viewer">
+                <h3 style="font-size: 0.9rem; margin-bottom: 0.6rem;">3D Structure Visualization</h3>
+                ${hasPDB ? '<div id="structure-viewer-pdb" class="structure-container"></div>' : '<div class="no-structure"><p>No PDB structure available for this peptide.</p></div>'}
+                
+                ${hasPDB ? `
+                <div class="structure-controls">
+                    <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
+                    <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
+                    <button id="btn-disulfide" onclick="setRepresentation('disulfide')">Disulfide Bridges</button>
+                    <button id="btn-contacts" onclick="setRepresentation('contacts')">Contacts & H-Bonds</button>
+                    <button id="btn-surface" onclick="setRepresentation('surface')">Surface</button>
+                </div>
+                <div class="structure-legend">
+                    <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
+                    <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
+                    <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
+                    <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
+                    <div class="legend-item"><div class="legend-color gold"></div><span>Disulfide Bonds (S-S)</span></div>
+                    <div class="legend-item"><div class="legend-color cyan"></div><span>Hydrogen Bonds</span></div>
+                </div>
+                <div class="pdb-info">
+                    <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
+                    <a href="https://www.rcsb.org/structure/${pdbId || peptide.PDB}" target="_blank">View on RCSB.org</a>
+                </div>
+                ` : ''}
+            </div>
+            
+            <div class="detail-section">
+                <h3>Basic Information</h3>
+                <div class="detail-row"><span class="detail-label">Peptide Name:</span><span class="detail-value">${peptide.peptide_name || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Sequence (1-letter):</span><span class="detail-value" style="font-family: monospace; font-size: 0.7rem; word-break: break-all;">${peptide.sequence_one_letter || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Sequence (3-letter):</span><span class="detail-value" style="font-size: 0.65rem; word-break: break-all;">${peptide.sequence_three_letter || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Length:</span><span class="detail-value">${peptide.length || 'N/A'} aa</span></div>
+                <div class="detail-row"><span class="detail-label">Molecular Weight:</span><span class="detail-value">${peptide.molecular_weight ? peptide.molecular_weight.toFixed(2) : 'N/A'} Da</span></div>
+                <div class="detail-row"><span class="detail-label">Net Charge:</span><span class="detail-value">${peptide.net_charge || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Hydrophobicity:</span><span class="detail-value">${peptide.hydrophobicity || 'N/A'}</span></div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>Structural Properties</h3>
+                <div class="detail-row"><span class="detail-label">Structure Type:</span><span class="detail-value">${peptide.structure_type || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">PDB ID:</span><span class="detail-value">${pdbId ? `<a href="https://www.rcsb.org/structure/${pdbId}" target="_blank">${pdbId}</a>` : (peptide.PDB || 'N/A')}</span></div>
+                ${hasSMILES ? `
+                <div class="detail-row">
+                    <span class="detail-label">SMILES:</span>
+                    <span class="detail-value">
+                        <div class="smiles-container">
+                            <strong style="font-size: 0.7rem;">Simplified Molecular Input Line Entry System</strong>
+                            <div style="font-family: monospace; font-size: 0.6rem; word-break: break-all; background: white; padding: 0.5rem; border-radius: 4px; border: 1px solid #e2e8f0; margin-top: 0.4rem;">${escapeHtml(peptide.SMILES)}</div>
+                            <button class="copy-btn" onclick="copySMILES('${escapeHtml(peptide.SMILES)}')">Copy SMILES</button>
+                            <p style="font-size: 0.6rem; color: #718096; margin-top: 0.4rem;">SMILES is a specification for describing chemical molecule structures using ASCII strings.</p>
+                        </div>
+                    </span>
+                </div>
+                ` : '<div class="detail-row"><span class="detail-label">SMILES:</span><span class="detail-value">N/A</span></div>'}
+            </div>
+            
+            <div class="detail-section">
+                <h3>Blood-Brain Barrier Penetration</h3>
+                <div class="detail-row"><span class="detail-label">Permeability Value:</span><span class="detail-value">${peptide.bbb_permeability_value || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Transport Type:</span><span class="detail-value">${peptide.bbb_transport_type || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Model:</span><span class="detail-value">${peptide.bbb_model || 'N/A'}</span></div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>Biological Source</h3>
+                <div class="detail-row"><span class="detail-label">Organism:</span><span class="detail-value">${peptide.source_organism || 'N/A'}</span></div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>Toxicity & Stability</h3>
+                <div class="detail-row"><span class="detail-label">Hemolysis (LC50):</span><span class="detail-value">${peptide.toxicity_hemolysis || 'N/A'} µM</span></div>
+                <div class="detail-row"><span class="detail-label">Serum Stability:</span><span class="detail-value">${peptide.stability_serum || 'N/A'} h</span></div>
+                <div class="detail-row"><span class="detail-label">Synergy:</span><span class="detail-value">${peptide.synergy || 'N/A'}</span></div>
+            </div>
+            
+            <div class="detail-section">
+                <h3>References</h3>
+                <div class="detail-row"><span class="detail-label">PMID:</span><span class="detail-value">${peptide.pmid || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">DOI:</span><span class="detail-value">${peptide.doi ? `<a href="https://doi.org/${peptide.doi}" target="_blank">${peptide.doi}</a>` : 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Notes:</span><span class="detail-value">${peptide.notes || 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Created Date:</span><span class="detail-value">${peptide.created_date || 'N/A'}</span></div>
+            </div>
+        </div>
+    `;
+    
+    const detailContainer = document.getElementById('peptideDetail');
+    if (detailContainer) {
+        detailContainer.innerHTML = html;
+    }
+    
+    if (hasPDB && pdbContent) {
+        setTimeout(() => {
+            renderPDBStructure(pdbContent, pdbId);
+        }, 100);
     }
 }
 
 // Make functions globally available
-window.searchPeptides = searchPeptides;
-window.resetFilters = resetFilters;
+window.searchPeptides = applyAllFilters;
+window.resetFilters = resetAllFilters;
 window.setView = setView;
 window.sortBy = sortBy;
 window.setRepresentation = setRepresentation;
@@ -1253,6 +942,9 @@ window.resetPDBView = resetPDBView;
 window.copySMILES = copySMILES;
 window.showUnderConstruction = showUnderConstruction;
 window.closeModal = closeModal;
+window.applyAllFilters = applyAllFilters;
+window.resetAllFilters = resetAllFilters;
+window.downloadResults = downloadResults;
 
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
