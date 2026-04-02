@@ -5,6 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>BarrPeps - Blood-Brain Barrier Penetrating Peptides Database</title>
     <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #4299e1;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            color: #718096;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .charts-section {
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .charts-section h2 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #2c5282;
+            font-weight: 600;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .chart-card h3 {
+            font-size: 0.9rem;
+            color: #2c5282;
+            margin-bottom: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+        
+        canvas {
+            max-height: 250px;
+            width: 100%;
+        }
+        
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+            }
+            
+            .stat-number {
+                font-size: 2.5rem;
+            }
+            
+            .charts-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+            }
+            
+            .charts-section h2 {
+                font-size: 1.5rem;
+            }
+            
+            .chart-card h3 {
+                font-size: 1rem;
+            }
+            
+            .chart-container {
+                height: 280px;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .chart-container {
+                height: 300px;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -33,12 +145,44 @@
             </div>
         </section>
 
-        <section id="statistics" class="stats-section">
+        <section class="stats-section">
             <h2>Database Statistics</h2>
             <div class="stats-grid" id="statsGrid">
                 <div class="stat-card">
                     <div class="stat-number" id="totalPeptides">-</div>
                     <div class="stat-label">Total Peptides</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgLength">-</div>
+                    <div class="stat-label">Average Length (aa)</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="avgCharge">-</div>
+                    <div class="stat-label">Average Net Charge</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="charts-section">
+            <h2>Peptide Distribution Analysis</h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>📏 Length Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="lengthChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>⚡ Net Charge Distribution</h3>
+                    <div class="chart-container">
+                        <canvas id="chargeChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>🧬 Amino Acid Frequency</h3>
+                    <div class="chart-container">
+                        <canvas id="aaChart"></canvas>
+                    </div>
                 </div>
             </div>
         </section>
@@ -76,12 +220,11 @@
                 <h3>Quick Links</h3>
                 <a href="index.html">Home</a>
                 <a href="browse.html">Browse Database</a>
-                <a href="#" onclick="showUnderConstruction()">About</a>
             </div>
             <div class="footer-section">
                 <h3>Data Sources</h3>
                 <p>Curated from peer-reviewed literature</p>
-                <p>Last updated: March 2025</p>
+                <p>Last updated: April 2026</p>
             </div>
         </div>
         <div class="footer-bottom">

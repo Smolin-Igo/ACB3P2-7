@@ -15,6 +15,11 @@ let currentRepresentation = 'cartoon';
 // Selected amino acids for filtering
 let selectedAAs = [];
 
+// Chart instances
+let lengthChart = null;
+let chargeChart = null;
+let aaChart = null;
+
 // Helper functions
 function getPeptideUrl(peptideId, peptideName) {
     return `peptide.html?id=${peptideId}&name=${encodeURIComponent(peptideName)}`;
@@ -166,20 +171,343 @@ function parseCSV(csvText) {
     }
 }
 
+// Calculate amino acid frequencies across all peptides
+function calculateAADistribution() {
+    const aaCounts = {
+        'A': 0, 'R': 0, 'N': 0, 'D': 0, 'C': 0, 'Q': 0, 'E': 0, 'G': 0,
+        'H': 0, 'I': 0, 'L': 0, 'K': 0, 'M': 0, 'F': 0, 'P': 0, 'S': 0,
+        'T': 0, 'W': 0, 'Y': 0, 'V': 0
+    };
+    
+    let totalAAs = 0;
+    
+    peptidesData.forEach(peptide => {
+        const seq = peptide.sequence_one_letter || '';
+        for (let i = 0; i < seq.length; i++) {
+            const aa = seq[i];
+            if (aaCounts.hasOwnProperty(aa)) {
+                aaCounts[aa]++;
+                totalAAs++;
+            }
+        }
+    });
+    
+    const aaPercentages = {};
+    for (const [aa, count] of Object.entries(aaCounts)) {
+        aaPercentages[aa] = totalAAs > 0 ? (count / totalAAs * 100).toFixed(1) : 0;
+    }
+    
+    return aaPercentages;
+}
+
+// Calculate length distribution (binned)
+function calculateLengthDistribution() {
+    const lengths = peptidesData.map(p => p.length).filter(l => l > 0);
+    const maxLength = Math.max(...lengths);
+    
+    const binSize = 10;
+    const bins = {};
+    
+    for (let i = 0; i <= maxLength + binSize; i += binSize) {
+        const binStart = i;
+        const binEnd = i + binSize;
+        const binLabel = `${binStart}-${binEnd}`;
+        bins[binLabel] = 0;
+    }
+    
+    lengths.forEach(length => {
+        const binIndex = Math.floor(length / binSize);
+        const binStart = binIndex * binSize;
+        const binEnd = binStart + binSize;
+        const binLabel = `${binStart}-${binEnd}`;
+        bins[binLabel]++;
+    });
+    
+    const filteredBins = {};
+    let hasData = false;
+    for (const [label, count] of Object.entries(bins)) {
+        if (count > 0) hasData = true;
+        if (hasData || count > 0) {
+            filteredBins[label] = count;
+        }
+    }
+    
+    return filteredBins;
+}
+
+// Calculate charge distribution
+function calculateChargeDistribution() {
+    const charges = peptidesData.map(p => p.net_charge).filter(c => c !== null && c !== '');
+    const chargeCounts = {};
+    
+    charges.forEach(charge => {
+        const roundedCharge = Math.round(charge);
+        const key = roundedCharge >= 0 ? `+${roundedCharge}` : `${roundedCharge}`;
+        chargeCounts[key] = (chargeCounts[key] || 0) + 1;
+    });
+    
+    const sortedKeys = Object.keys(chargeCounts).sort((a, b) => {
+        const numA = parseInt(a) || 0;
+        const numB = parseInt(b) || 0;
+        return numA - numB;
+    });
+    
+    const sortedCounts = {};
+    sortedKeys.forEach(key => {
+        sortedCounts[key] = chargeCounts[key];
+    });
+    
+    return sortedCounts;
+}
+
+// Create length distribution chart
+function createLengthChart() {
+    const ctx = document.getElementById('lengthChart');
+    if (!ctx) return;
+    
+    const distribution = calculateLengthDistribution();
+    
+    const labels = Object.keys(distribution);
+    const data = Object.values(distribution);
+    
+    if (lengthChart) {
+        lengthChart.destroy();
+    }
+    
+    lengthChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Number of Peptides',
+                data: data,
+                backgroundColor: 'rgba(66, 153, 225, 0.7)',
+                borderColor: 'rgba(66, 153, 225, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.raw} peptides`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Count',
+                        font: { size: 10 }
+                    },
+                    ticks: { stepSize: 1, font: { size: 9 } }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Length (amino acids)',
+                        font: { size: 10 }
+                    },
+                    ticks: { font: { size: 8 }, rotation: 45 }
+                }
+            }
+        }
+    });
+}
+
+// Create charge distribution chart
+function createChargeChart() {
+    const ctx = document.getElementById('chargeChart');
+    if (!ctx) return;
+    
+    const distribution = calculateChargeDistribution();
+    
+    const labels = Object.keys(distribution);
+    const data = Object.values(distribution);
+    
+    if (chargeChart) {
+        chargeChart.destroy();
+    }
+    
+    const backgroundColors = labels.map(label => {
+        const val = parseInt(label);
+        if (val > 0) return 'rgba(66, 153, 225, 0.7)';
+        if (val < 0) return 'rgba(245, 101, 101, 0.7)';
+        return 'rgba(160, 174, 192, 0.7)';
+    });
+    
+    const borderColors = labels.map(label => {
+        const val = parseInt(label);
+        if (val > 0) return 'rgba(66, 153, 225, 1)';
+        if (val < 0) return 'rgba(245, 101, 101, 1)';
+        return 'rgba(160, 174, 192, 1)';
+    });
+    
+    chargeChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Number of Peptides',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.raw} peptides`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Count',
+                        font: { size: 10 }
+                    },
+                    ticks: { stepSize: 1, font: { size: 9 } }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Net Charge',
+                        font: { size: 10 }
+                    },
+                    ticks: { font: { size: 9 } }
+                }
+            }
+        }
+    });
+}
+
+// Create amino acid frequency chart
+function createAAChart() {
+    const ctx = document.getElementById('aaChart');
+    if (!ctx) return;
+    
+    const distribution = calculateAADistribution();
+    
+    const labels = Object.keys(distribution);
+    const data = Object.values(distribution);
+    
+    if (aaChart) {
+        aaChart.destroy();
+    }
+    
+    const colors = [
+        '#4299e1', '#48bb78', '#ed8936', '#9f7aea', '#f56565',
+        '#38b2ac', '#ecc94b', '#ed64a6', '#a0aec0', '#4a5568',
+        '#4299e1', '#48bb78', '#ed8936', '#9f7aea', '#f56565',
+        '#38b2ac', '#ecc94b', '#ed64a6', '#a0aec0', '#4a5568'
+    ];
+    
+    aaChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Frequency (%)',
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderColor: colors.slice(0, labels.length),
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.raw}% of all residues`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Frequency (%)',
+                        font: { size: 10 }
+                    },
+                    ticks: { font: { size: 9 } }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Amino Acid',
+                        font: { size: 10 }
+                    },
+                    ticks: { font: { size: 9 }, weight: 'bold' }
+                }
+            }
+        }
+    });
+}
+
 // Home page initialization
 function initHomePage() {
     console.log('Initializing home page');
     updateHomeStats();
     displayFeaturedPeptides();
+    
+    setTimeout(() => {
+        if (peptidesData.length > 0) {
+            createLengthChart();
+            createChargeChart();
+            createAAChart();
+        }
+    }, 100);
 }
 
 function updateHomeStats() {
     const total = peptidesData.length;
     if (total === 0) return;
     
+    const avgLength = peptidesData.reduce((sum, p) => sum + p.length, 0) / total;
+    const avgCharge = peptidesData.reduce((sum, p) => sum + (parseFloat(p.net_charge) || 0), 0) / total;
+    
     const totalEl = document.getElementById('totalPeptides');
+    const avgLengthEl = document.getElementById('avgLength');
+    const avgChargeEl = document.getElementById('avgCharge');
     
     if (totalEl) totalEl.textContent = total;
+    if (avgLengthEl) avgLengthEl.textContent = avgLength.toFixed(1);
+    if (avgChargeEl) avgChargeEl.textContent = avgCharge.toFixed(1);
 }
 
 function displayFeaturedPeptides() {
@@ -376,7 +704,6 @@ function applyAllFilters() {
 
 // Reset all filters
 function resetAllFilters() {
-    // Reset inputs
     const searchInput = document.getElementById('searchInput');
     const lengthMin = document.getElementById('lengthMin');
     const lengthMax = document.getElementById('lengthMax');
@@ -397,13 +724,11 @@ function resetAllFilters() {
     if (modelFilter) modelFilter.value = 'all';
     if (modFilter) modFilter.value = 'all';
     
-    // Reset amino acid selections
     selectedAAs = [];
     document.querySelectorAll('.aa-btn-compact').forEach(btn => {
         btn.classList.remove('selected');
     });
     
-    // Reset results
     filteredPeptides = [...peptidesData];
     updateBrowseStats();
     displayBrowseResults();
@@ -618,7 +943,7 @@ async function fetchPDBStructure(pdbId) {
     }
 }
 
-// Render PDB structure with multiple representations
+// Render PDB structure
 function renderPDBStructure(pdbContent, pdbId) {
     const container = document.getElementById('structure-viewer-pdb');
     if (!container) return;
@@ -666,79 +991,18 @@ function setRepresentation(type) {
         });
         currentRepresentation = 'ballAndStick';
     }
-    else if (type === 'disulfide') {
-        pdbViewer.setStyle({}, { 
-            cartoon: { colorscheme: 'ss', opacity: 0.7 },
-            stick: { colorscheme: 'elem', radius: 0.1 }
-        });
-        pdbViewer.addStyle({}, { 
-            disulfide: { 
-                color: 'gold',
-                radius: 0.2,
-                opacity: 0.9
-            } 
-        });
-        pdbViewer.addStyle({}, { 
-            hbond: { 
-                color: 'cyan',
-                radius: 0.08,
-                opacity: 0.6
-            } 
-        });
-        currentRepresentation = 'disulfide';
-    }
-    else if (type === 'contacts') {
-        pdbViewer.setStyle({}, { 
-            cartoon: { colorscheme: 'ss', opacity: 0.6 },
-            sphere: { colorscheme: 'elem', scale: 0.2 }
-        });
-        pdbViewer.addStyle({}, { 
-            disulfide: { 
-                color: 'gold',
-                radius: 0.25,
-                opacity: 1
-            } 
-        });
-        currentRepresentation = 'contacts';
-    }
-    else if (type === 'surface') {
-        pdbViewer.setStyle({}, { 
-            cartoon: { colorscheme: 'ss', opacity: 0.5 },
-            surface: { 
-                opacity: 0.3,
-                colorscheme: 'whiteCarbon'
-            }
-        });
-        pdbViewer.addStyle({}, { 
-            disulfide: { 
-                color: 'gold',
-                radius: 0.2,
-                opacity: 1
-            } 
-        });
-        currentRepresentation = 'surface';
-    }
     
     pdbViewer.zoomTo();
     pdbViewer.render();
     
     const cartoonBtn = document.getElementById('btn-cartoon');
     const ballBtn = document.getElementById('btn-ballstick');
-    const disulfideBtn = document.getElementById('btn-disulfide');
-    const contactsBtn = document.getElementById('btn-contacts');
-    const surfaceBtn = document.getElementById('btn-surface');
     
     if (cartoonBtn) cartoonBtn.classList.remove('active');
     if (ballBtn) ballBtn.classList.remove('active');
-    if (disulfideBtn) disulfideBtn.classList.remove('active');
-    if (contactsBtn) contactsBtn.classList.remove('active');
-    if (surfaceBtn) surfaceBtn.classList.remove('active');
     
     if (type === 'cartoon' && cartoonBtn) cartoonBtn.classList.add('active');
     else if (type === 'ballAndStick' && ballBtn) ballBtn.classList.add('active');
-    else if (type === 'disulfide' && disulfideBtn) disulfideBtn.classList.add('active');
-    else if (type === 'contacts' && contactsBtn) contactsBtn.classList.add('active');
-    else if (type === 'surface' && surfaceBtn) surfaceBtn.classList.add('active');
 }
 
 function resetPDBView() {
@@ -801,17 +1065,12 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
                 <div class="structure-controls">
                     <button id="btn-cartoon" class="active" onclick="setRepresentation('cartoon')">Cartoon</button>
                     <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
-                    <button id="btn-disulfide" onclick="setRepresentation('disulfide')">Disulfide Bridges</button>
-                    <button id="btn-contacts" onclick="setRepresentation('contacts')">Contacts & H-Bonds</button>
-                    <button id="btn-surface" onclick="setRepresentation('surface')">Surface</button>
                 </div>
                 <div class="structure-legend">
                     <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
                     <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
                     <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
                     <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
-                    <div class="legend-item"><div class="legend-color gold"></div><span>Disulfide Bonds (S-S)</span></div>
-                    <div class="legend-item"><div class="legend-color cyan"></div><span>Hydrogen Bonds</span></div>
                 </div>
                 <div class="pdb-info">
                     <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
