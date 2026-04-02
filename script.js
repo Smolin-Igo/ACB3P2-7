@@ -705,6 +705,307 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
     }
 }
 
+// Advanced filters variables
+let selectedAAs = [];
+let advancedFiltersActive = false;
+
+// Toggle advanced filters panel
+function toggleAdvancedFilters() {
+    const panel = document.getElementById('advancedFilters');
+    const arrow = document.querySelector('.filter-toggle .arrow');
+    if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
+        arrow.classList.remove('rotated');
+    } else {
+        panel.classList.add('show');
+        arrow.classList.add('rotated');
+    }
+}
+
+// Initialize amino acid selector buttons
+function initAASelector() {
+    const buttons = document.querySelectorAll('.aa-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const aa = this.getAttribute('data-aa');
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected');
+                selectedAAs = selectedAAs.filter(a => a !== aa);
+            } else {
+                this.classList.add('selected');
+                selectedAAs.push(aa);
+            }
+        });
+    });
+}
+
+// Check if sequence contains all selected amino acids
+function containsAllAAs(sequence, requiredAAs) {
+    if (!requiredAAs || requiredAAs.length === 0) return true;
+    return requiredAAs.every(aa => sequence.includes(aa));
+}
+
+// Check modifications (simplified - based on notes field)
+function checkModifications(peptide, modType) {
+    const notes = (peptide.notes || '').toLowerCase();
+    const name = (peptide.peptide_name || '').toLowerCase();
+    
+    switch(modType) {
+        case 'amidation':
+            return notes.includes('amid') || notes.includes('c-terminal') || name.includes('amid');
+        case 'acylation':
+            return notes.includes('acyl') || notes.includes('n-terminal') || name.includes('acyl');
+        case 'cyclization':
+            return notes.includes('cycl') || notes.includes('cyclic');
+        case 'glycosylation':
+            return notes.includes('glyco');
+        case 'phosphorylation':
+            return notes.includes('phospho');
+        default:
+            return false;
+    }
+}
+
+// Apply advanced filters
+function applyAdvancedFilters() {
+    const lengthMin = parseInt(document.getElementById('lengthMin').value) || 0;
+    const lengthMax = parseInt(document.getElementById('lengthMax').value) || 1000;
+    const structureType = document.getElementById('structureTypeAdvanced').value;
+    const pdbFilter = document.getElementById('pdbFilter').value;
+    const transportFilter = document.getElementById('transportFilter').value;
+    const modelFilter = document.getElementById('modelFilter').value;
+    
+    // Modifications
+    const modAmidation = document.getElementById('modAmidation').checked;
+    const modAcylation = document.getElementById('modAcylation').checked;
+    const modCyclization = document.getElementById('modCyclization').checked;
+    const modGlycosylation = document.getElementById('modGlycosylation').checked;
+    const modPhosphorylation = document.getElementById('modPhosphorylation').checked;
+    
+    let tempFiltered = [...peptidesData];
+    
+    // Apply length filter
+    tempFiltered = tempFiltered.filter(p => p.length >= lengthMin && p.length <= lengthMax);
+    
+    // Apply amino acid composition filter
+    if (selectedAAs.length > 0) {
+        tempFiltered = tempFiltered.filter(p => containsAllAAs(p.sequence_one_letter || '', selectedAAs));
+    }
+    
+    // Apply structure type filter
+    if (structureType !== 'all') {
+        tempFiltered = tempFiltered.filter(p => (p.structure_type || '').toLowerCase() === structureType.toLowerCase());
+    }
+    
+    // Apply PDB availability filter
+    if (pdbFilter !== 'all') {
+        if (pdbFilter === 'yes') {
+            tempFiltered = tempFiltered.filter(p => p.PDB && p.PDB !== '' && p.PDB !== 'N/A');
+        } else {
+            tempFiltered = tempFiltered.filter(p => !p.PDB || p.PDB === '' || p.PDB === 'N/A');
+        }
+    }
+    
+    // Apply transport type filter
+    if (transportFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => {
+            const transport = (p.bbb_transport_type || '').toLowerCase();
+            switch(transportFilter) {
+                case 'penetration':
+                    return transport.includes('penetration') || transport.includes('cell penetrating');
+                case 'physical':
+                    return transport.includes('physical');
+                case 'lipid':
+                    return transport.includes('lipid') || transport.includes('liposomal');
+                case 'endosomal':
+                    return transport.includes('endosomal') || transport.includes('fusion');
+                case 'carrier':
+                    return transport.includes('carrier') || transport.includes('solute');
+                case 'receptor':
+                    return transport.includes('receptor');
+                case 'passive':
+                    return transport.includes('passive');
+                default:
+                    return true;
+            }
+        });
+    }
+    
+    // Apply model filter
+    if (modelFilter !== 'all') {
+        tempFiltered = tempFiltered.filter(p => (p.bbb_model || '').toLowerCase() === modelFilter.toLowerCase());
+    }
+    
+    // Apply modifications filters
+    if (modAmidation) {
+        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'amidation'));
+    }
+    if (modAcylation) {
+        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'acylation'));
+    }
+    if (modCyclization) {
+        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'cyclization'));
+    }
+    if (modGlycosylation) {
+        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'glycosylation'));
+    }
+    if (modPhosphorylation) {
+        tempFiltered = tempFiltered.filter(p => checkModifications(p, 'phosphorylation'));
+    }
+    
+    filteredPeptides = tempFiltered;
+    advancedFiltersActive = true;
+    updateBrowseStats();
+    displayBrowseResults();
+}
+
+// Clear advanced filters
+function clearAdvancedFilters() {
+    // Reset length inputs
+    document.getElementById('lengthMin').value = 0;
+    document.getElementById('lengthMax').value = 100;
+    
+    // Clear amino acid selections
+    selectedAAs = [];
+    document.querySelectorAll('.aa-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    
+    // Reset selects
+    document.getElementById('structureTypeAdvanced').value = 'all';
+    document.getElementById('pdbFilter').value = 'all';
+    document.getElementById('transportFilter').value = 'all';
+    document.getElementById('modelFilter').value = 'all';
+    
+    // Reset checkboxes
+    document.getElementById('modAmidation').checked = false;
+    document.getElementById('modAcylation').checked = false;
+    document.getElementById('modCyclization').checked = false;
+    document.getElementById('modGlycosylation').checked = false;
+    document.getElementById('modPhosphorylation').checked = false;
+    
+    // Reset main filters as well
+    document.getElementById('searchInput').value = '';
+    document.getElementById('activityFilter').value = 'all';
+    document.getElementById('structureFilter').value = 'all';
+    
+    // Reset filtered peptides
+    filteredPeptides = [...peptidesData];
+    advancedFiltersActive = false;
+    updateBrowseStats();
+    displayBrowseResults();
+}
+
+// Update the existing searchPeptides function to work with advanced filters
+function searchPeptides() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const activityFilter = document.getElementById('activityFilter').value;
+    const structureFilter = document.getElementById('structureFilter').value;
+    
+    let tempFiltered = [...peptidesData];
+    
+    // Apply main search filters
+    tempFiltered = tempFiltered.filter(peptide => {
+        const matchesSearch = searchTerm === '' || 
+            (peptide.peptide_name && peptide.peptide_name.toLowerCase().includes(searchTerm)) ||
+            (peptide.sequence_one_letter && peptide.sequence_one_letter.toLowerCase().includes(searchTerm)) ||
+            (peptide.source_organism && peptide.source_organism.toLowerCase().includes(searchTerm));
+        
+        let matchesActivity = true;
+        if (activityFilter !== 'all') {
+            const permValue = parseFloat(peptide.bbb_permeability_value);
+            if (!isNaN(permValue)) {
+                if (activityFilter === 'high') matchesActivity = permValue > 0.3;
+                else if (activityFilter === 'medium') matchesActivity = permValue >= 0 && permValue <= 0.3;
+                else if (activityFilter === 'low') matchesActivity = permValue < 0;
+            } else {
+                matchesActivity = false;
+            }
+        }
+        
+        let matchesStructure = true;
+        if (structureFilter !== 'all') {
+            matchesStructure = (peptide.structure_type || '').toLowerCase() === structureFilter.toLowerCase();
+        }
+        
+        return matchesSearch && matchesActivity && matchesStructure;
+    });
+    
+    // If advanced filters are active, apply them too
+    if (advancedFiltersActive) {
+        const lengthMin = parseInt(document.getElementById('lengthMin').value) || 0;
+        const lengthMax = parseInt(document.getElementById('lengthMax').value) || 1000;
+        const structureType = document.getElementById('structureTypeAdvanced').value;
+        const pdbFilter = document.getElementById('pdbFilter').value;
+        const transportFilter = document.getElementById('transportFilter').value;
+        const modelFilter = document.getElementById('modelFilter').value;
+        
+        const modAmidation = document.getElementById('modAmidation').checked;
+        const modAcylation = document.getElementById('modAcylation').checked;
+        const modCyclization = document.getElementById('modCyclization').checked;
+        const modGlycosylation = document.getElementById('modGlycosylation').checked;
+        const modPhosphorylation = document.getElementById('modPhosphorylation').checked;
+        
+        tempFiltered = tempFiltered.filter(p => p.length >= lengthMin && p.length <= lengthMax);
+        
+        if (selectedAAs.length > 0) {
+            tempFiltered = tempFiltered.filter(p => containsAllAAs(p.sequence_one_letter || '', selectedAAs));
+        }
+        
+        if (structureType !== 'all') {
+            tempFiltered = tempFiltered.filter(p => (p.structure_type || '').toLowerCase() === structureType.toLowerCase());
+        }
+        
+        if (pdbFilter !== 'all') {
+            if (pdbFilter === 'yes') {
+                tempFiltered = tempFiltered.filter(p => p.PDB && p.PDB !== '' && p.PDB !== 'N/A');
+            } else {
+                tempFiltered = tempFiltered.filter(p => !p.PDB || p.PDB === '' || p.PDB === 'N/A');
+            }
+        }
+        
+        if (transportFilter !== 'all') {
+            tempFiltered = tempFiltered.filter(p => {
+                const transport = (p.bbb_transport_type || '').toLowerCase();
+                switch(transportFilter) {
+                    case 'penetration': return transport.includes('penetration') || transport.includes('cell penetrating');
+                    case 'physical': return transport.includes('physical');
+                    case 'lipid': return transport.includes('lipid') || transport.includes('liposomal');
+                    case 'endosomal': return transport.includes('endosomal') || transport.includes('fusion');
+                    case 'carrier': return transport.includes('carrier') || transport.includes('solute');
+                    case 'receptor': return transport.includes('receptor');
+                    case 'passive': return transport.includes('passive');
+                    default: return true;
+                }
+            });
+        }
+        
+        if (modelFilter !== 'all') {
+            tempFiltered = tempFiltered.filter(p => (p.bbb_model || '').toLowerCase() === modelFilter.toLowerCase());
+        }
+        
+        if (modAmidation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'amidation'));
+        if (modAcylation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'acylation'));
+        if (modCyclization) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'cyclization'));
+        if (modGlycosylation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'glycosylation'));
+        if (modPhosphorylation) tempFiltered = tempFiltered.filter(p => checkModifications(p, 'phosphorylation'));
+    }
+    
+    filteredPeptides = tempFiltered;
+    updateBrowseStats();
+    displayBrowseResults();
+}
+
+// Update the initBrowsePage function to include AA selector initialization
+function initBrowsePage() {
+    console.log('Initializing browse page');
+    filteredPeptides = [...peptidesData];
+    updateBrowseStats();
+    displayBrowseResults();
+    setupBrowseEventListeners();
+    initAASelector(); // Initialize amino acid selector
+}
+
 // Make functions globally available
 window.searchPeptides = searchPeptides;
 window.resetFilters = resetFilters;

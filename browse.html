@@ -5,6 +5,158 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Browse Peptides - BarrPeps Database</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Advanced Filter Panel Styles */
+        .advanced-filters {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px solid #e2e8f0;
+            display: none;
+        }
+        
+        .advanced-filters.show {
+            display: block;
+        }
+        
+        .filter-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 0.5rem 0;
+            color: #4299e1;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        
+        .filter-toggle:hover {
+            color: #2c5282;
+        }
+        
+        .filter-toggle .arrow {
+            transition: transform 0.2s;
+        }
+        
+        .filter-toggle .arrow.rotated {
+            transform: rotate(180deg);
+        }
+        
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 0.3rem;
+            font-weight: 700;
+            color: #4a5568;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .filter-group input, .filter-group select {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            background: white;
+        }
+        
+        .range-inputs {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .range-inputs input {
+            width: 50%;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.3rem;
+        }
+        
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-weight: normal;
+            text-transform: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        .checkbox-group input {
+            width: auto;
+            margin-right: 0.25rem;
+        }
+        
+        .amino-acid-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.3rem;
+        }
+        
+        .aa-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e0;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        
+        .aa-btn.selected {
+            background: #4299e1;
+            color: white;
+            border-color: #4299e1;
+        }
+        
+        .aa-btn:hover {
+            background: #e2e8f0;
+        }
+        
+        .filter-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        @media (min-width: 768px) {
+            .advanced-filters {
+                padding: 1.5rem;
+            }
+            
+            .filter-group label {
+                font-size: 0.8rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .filter-group input, .filter-group select {
+                padding: 0.75rem;
+                font-size: 0.9rem;
+            }
+            
+            .aa-btn {
+                width: 36px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
@@ -58,6 +210,109 @@
                     <button class="btn-secondary" onclick="resetFilters()">Reset</button>
                 </div>
             </div>
+            
+            <div class="filter-toggle" onclick="toggleAdvancedFilters()">
+                <span>🔧 Advanced Filters</span>
+                <span class="arrow">▼</span>
+            </div>
+            
+            <div id="advancedFilters" class="advanced-filters">
+                <div class="filter-group">
+                    <label>📏 Peptide Length Range (aa)</label>
+                    <div class="range-inputs">
+                        <input type="number" id="lengthMin" placeholder="Min" value="0">
+                        <input type="number" id="lengthMax" placeholder="Max" value="100">
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>🧬 Required Amino Acids (select one or more)</label>
+                    <div class="amino-acid-selector" id="aaSelector">
+                        <button type="button" class="aa-btn" data-aa="A">A</button>
+                        <button type="button" class="aa-btn" data-aa="R">R</button>
+                        <button type="button" class="aa-btn" data-aa="N">N</button>
+                        <button type="button" class="aa-btn" data-aa="D">D</button>
+                        <button type="button" class="aa-btn" data-aa="C">C</button>
+                        <button type="button" class="aa-btn" data-aa="Q">Q</button>
+                        <button type="button" class="aa-btn" data-aa="E">E</button>
+                        <button type="button" class="aa-btn" data-aa="G">G</button>
+                        <button type="button" class="aa-btn" data-aa="H">H</button>
+                        <button type="button" class="aa-btn" data-aa="I">I</button>
+                        <button type="button" class="aa-btn" data-aa="L">L</button>
+                        <button type="button" class="aa-btn" data-aa="K">K</button>
+                        <button type="button" class="aa-btn" data-aa="M">M</button>
+                        <button type="button" class="aa-btn" data-aa="F">F</button>
+                        <button type="button" class="aa-btn" data-aa="P">P</button>
+                        <button type="button" class="aa-btn" data-aa="S">S</button>
+                        <button type="button" class="aa-btn" data-aa="T">T</button>
+                        <button type="button" class="aa-btn" data-aa="W">W</button>
+                        <button type="button" class="aa-btn" data-aa="Y">Y</button>
+                        <button type="button" class="aa-btn" data-aa="V">V</button>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>🔬 Structure Type</label>
+                    <select id="structureTypeAdvanced">
+                        <option value="all">All</option>
+                        <option value="alpha-helix">Alpha-helix</option>
+                        <option value="beta-sheet">Beta-sheet</option>
+                        <option value="random-coil">Random coil</option>
+                        <option value="extended">Extended</option>
+                        <option value="lantibiotic">Lantibiotic</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>📁 PDB Availability</label>
+                    <select id="pdbFilter">
+                        <option value="all">All</option>
+                        <option value="yes">Has PDB structure</option>
+                        <option value="no">No PDB structure</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>🚚 Transport Type</label>
+                    <select id="transportFilter">
+                        <option value="all">All</option>
+                        <option value="penetration">Direct Penetration (Cell Penetrating Peptides)</option>
+                        <option value="physical">Physical Techniques</option>
+                        <option value="lipid">Transport Across Lipid Bilayer (Liposomal-drug delivery)</option>
+                        <option value="endosomal">Membrane Fusion (The Endosomal Pathway)</option>
+                        <option value="carrier">Trans-Membrane Transporter Proteins (Solute Carriers)</option>
+                        <option value="receptor">Receptor-mediated</option>
+                        <option value="passive">Passive Diffusion</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>⚙️ Modifications</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="modAmidation"> Amidation (C-terminal)</label>
+                        <label><input type="checkbox" id="modAcylation"> Acylation (N-terminal)</label>
+                        <label><input type="checkbox" id="modCyclization"> Cyclization</label>
+                        <label><input type="checkbox" id="modGlycosylation"> Glycosylation</label>
+                        <label><input type="checkbox" id="modPhosphorylation"> Phosphorylation</label>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>🧪 Model</label>
+                    <select id="modelFilter">
+                        <option value="all">All</option>
+                        <option value="in vitro">In vitro</option>
+                        <option value="in vivo">In vivo</option>
+                        <option value="in silico">In silico</option>
+                        <option value="ex vivo">Ex vivo</option>
+                    </select>
+                </div>
+                
+                <div class="filter-actions">
+                    <button class="btn-secondary" onclick="applyAdvancedFilters()">Apply Filters</button>
+                    <button class="btn-secondary" onclick="clearAdvancedFilters()">Clear Advanced Filters</button>
+                </div>
+            </div>
         </div>
 
         <div class="results-header">
@@ -86,7 +341,6 @@
                 <h3>Quick Links</h3>
                 <a href="index.html">Home</a>
                 <a href="browse.html">Browse Database</a>
-                <a href="#" onclick="showUnderConstruction()">About</a>
             </div>
             <div class="footer-section">
                 <h3>Data Sources</h3>
