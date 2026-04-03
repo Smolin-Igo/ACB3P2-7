@@ -961,7 +961,7 @@ async function fetchPDBStructure(pdbId) {
     }
 }
 
-// Find disulfide bonds by distance between sulfur atoms
+// Find disulfide bonds by distance between sulfur atoms (one bond per pair)
 function findDisulfideBonds(pdbContent) {
     const lines = pdbContent.split('\n');
     const sulfurAtoms = [];
@@ -975,8 +975,8 @@ function findDisulfideBonds(pdbContent) {
             const resName = line.substring(17, 20).trim();
             const resSeq = parseInt(line.substring(22, 26).trim());
             
-            // Look for SG atom in CYS residue
-            if (atomName === 'SG' && resName === 'CYS') {
+            // Look for SG atom in CYS residue (also check for 'S' as alternative)
+            if ((atomName === 'SG' || atomName === 'S') && resName === 'CYS') {
                 const x = parseFloat(line.substring(30, 38));
                 const y = parseFloat(line.substring(38, 46));
                 const z = parseFloat(line.substring(46, 54));
@@ -986,7 +986,7 @@ function findDisulfideBonds(pdbContent) {
                     x: x, y: y, z: z
                 });
                 
-                console.log(`Found SG atom: CYS${resSeq} at (${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)})`);
+                console.log(`Found sulfur atom: CYS${resSeq} at (${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)})`);
             }
         }
     });
@@ -995,14 +995,10 @@ function findDisulfideBonds(pdbContent) {
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bonds = [];
-    const usedAtoms = new Set();
     
+    // Simple double loop - each pair checked exactly once
     for (let i = 0; i < sulfurAtoms.length; i++) {
-        if (usedAtoms.has(i)) continue;
-        
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
-            if (usedAtoms.has(j)) continue;
-            
             const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
             const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
@@ -1020,13 +1016,12 @@ function findDisulfideBonds(pdbContent) {
                     y2: sulfurAtoms[j].y,
                     z2: sulfurAtoms[j].z
                 });
-                usedAtoms.add(i);
-                usedAtoms.add(j);
                 console.log(`Found disulfide bond: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq} (${distance.toFixed(2)} Å)`);
-                break;
             }
         }
     }
+    
+    console.log(`Total disulfide bonds found: ${bonds.length}`);
     
     return bonds;
 }
@@ -1048,7 +1043,7 @@ function renderPDBStructure(pdbContent, pdbId) {
     
     console.log('Rendering PDB structure for:', pdbId);
     
-    // Find disulfide bonds
+    // Find disulfide bonds (each pair only once)
     disulfideBonds = findDisulfideBonds(pdbContent);
     
     container.innerHTML = '';
@@ -1086,9 +1081,9 @@ function setRepresentation(type) {
             }
         });
         
-        // Add disulfide bonds
+        // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach(bond => {
+            disulfideBonds.forEach((bond, index) => {
                 if (bond.x1 && bond.x2) {
                     pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
@@ -1098,8 +1093,11 @@ function setRepresentation(type) {
                         fromCap: 1,
                         toCap: 1
                     });
+                    console.log(`Added bond ${index + 1}: CYS${bond.cys1} - CYS${bond.cys2}`);
                 }
             });
+        } else {
+            console.log('No disulfide bonds to add');
         }
         
         currentRepresentation = 'cartoon';
@@ -1120,9 +1118,9 @@ function setRepresentation(type) {
             }
         });
         
-        // Add disulfide bonds
+        // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach(bond => {
+            disulfideBonds.forEach((bond, index) => {
                 if (bond.x1 && bond.x2) {
                     pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
