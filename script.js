@@ -962,7 +962,6 @@ async function fetchPDBStructure(pdbId) {
 }
 
 // Find disulfide bonds by distance between sulfur atoms (one bond per pair)
-// Find disulfide bonds by distance between sulfur atoms (one bond per pair)
 function findDisulfideBonds(pdbContent) {
     const lines = pdbContent.split('\n');
     const sulfurAtoms = [];
@@ -983,7 +982,8 @@ function findDisulfideBonds(pdbContent) {
                 
                 sulfurAtoms.push({
                     resSeq: resSeq,
-                    x: x, y: y, z: z
+                    x: x, y: y, z: z,
+                    chain: line.substring(21, 22).trim() // Get chain info
                 });
             }
         }
@@ -992,39 +992,46 @@ function findDisulfideBonds(pdbContent) {
     console.log(`Total sulfur atoms found: ${sulfurAtoms.length}`);
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
-    const bonds = [];
-    const processedPairs = new Set();
+    const bondsMap = new Map(); // Use Map to store unique bonds by pair key
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
-            const pairKey = `${Math.min(sulfurAtoms[i].resSeq, sulfurAtoms[j].resSeq)}-${Math.max(sulfurAtoms[i].resSeq, sulfurAtoms[j].resSeq)}`;
-            
-            if (processedPairs.has(pairKey)) continue;
-            
             const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
             const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
             const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
             if (distance >= 1.8 && distance <= 2.5) {
-                bonds.push({
-                    cys1: sulfurAtoms[i].resSeq,
-                    cys2: sulfurAtoms[j].resSeq,
-                    distance: distance,
-                    x1: sulfurAtoms[i].x,
-                    y1: sulfurAtoms[i].y,
-                    z1: sulfurAtoms[i].z,
-                    x2: sulfurAtoms[j].x,
-                    y2: sulfurAtoms[j].y,
-                    z2: sulfurAtoms[j].z
-                });
-                processedPairs.add(pairKey);
-                console.log(`Found disulfide bond: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq} (${distance.toFixed(2)} Å)`);
+                // Create a unique key for this pair of cysteines (order independent)
+                const cys1 = sulfurAtoms[i].resSeq;
+                const cys2 = sulfurAtoms[j].resSeq;
+                const pairKey = `${Math.min(cys1, cys2)}-${Math.max(cys1, cys2)}`;
+                
+                // Only add if we haven't seen this pair before
+                if (!bondsMap.has(pairKey)) {
+                    bondsMap.set(pairKey, {
+                        cys1: cys1,
+                        cys2: cys2,
+                        distance: distance,
+                        x1: sulfurAtoms[i].x,
+                        y1: sulfurAtoms[i].y,
+                        z1: sulfurAtoms[i].z,
+                        x2: sulfurAtoms[j].x,
+                        y2: sulfurAtoms[j].y,
+                        z2: sulfurAtoms[j].z
+                    });
+                    console.log(`Found disulfide bond: CYS${cys1} - CYS${cys2} (${distance.toFixed(2)} Å)`);
+                } else {
+                    console.log(`Skipping duplicate bond: CYS${cys1} - CYS${cys2}`);
+                }
             }
         }
     }
     
+    // Convert Map values to array
+    const bonds = Array.from(bondsMap.values());
     console.log(`Total unique disulfide bonds found: ${bonds.length}`);
+    
     return bonds;
 }
 
@@ -1045,7 +1052,7 @@ function renderPDBStructure(pdbContent, pdbId) {
     
     console.log('Rendering PDB structure for:', pdbId);
     
-    // Find disulfide bonds
+    // Find disulfide bonds (unique pairs only)
     disulfideBonds = findDisulfideBonds(pdbContent);
     
     container.innerHTML = '';
@@ -1083,21 +1090,14 @@ function setRepresentation(type) {
             }
         });
         
-        // Remove existing disulfide bonds before adding new ones
+        // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
         // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach((bond) => {
+            disulfideBonds.forEach((bond, index) => {
                 if (bond.x1 && bond.x2) {
                     try {
-                        // Create a custom shape for the bond
-                        const atoms = [
-                            {x: bond.x1, y: bond.y1, z: bond.z1},
-                            {x: bond.x2, y: bond.y2, z: bond.z2}
-                        ];
-                        
-                        // Add cylinder between the two points
                         pdbViewer.addCylinder({
                             start: {x: bond.x1, y: bond.y1, z: bond.z1},
                             end: {x: bond.x2, y: bond.y2, z: bond.z2},
@@ -1106,12 +1106,13 @@ function setRepresentation(type) {
                             fromCap: 1,
                             toCap: 1
                         });
+                        console.log(`Added bond ${index + 1}: CYS${bond.cys1} - CYS${bond.cys2}`);
                     } catch(e) {
                         console.error('Error adding cylinder:', e);
                     }
                 }
             });
-            console.log(`Added ${disulfideBonds.length} disulfide bond(s)`);
+            console.log(`Total added: ${disulfideBonds.length} disulfide bond(s)`);
         } else {
             console.log('No disulfide bonds to add');
         }
@@ -1134,12 +1135,12 @@ function setRepresentation(type) {
             }
         });
         
-        // Remove existing disulfide bonds before adding new ones
+        // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
         // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach((bond) => {
+            disulfideBonds.forEach((bond, index) => {
                 if (bond.x1 && bond.x2) {
                     try {
                         pdbViewer.addCylinder({
