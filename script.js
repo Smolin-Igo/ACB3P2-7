@@ -1007,7 +1007,7 @@ function findDisulfideBonds(pdbContent) {
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
             const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            if (distance >= 1.8 && distance <= 2.5) {
+            if (distance >= 1.8 && distance <= 3) {
                 // Create a unique key for this pair of cysteines (order independent)
                 const cys1 = sulfurAtoms[i].resSeq;
                 const cys2 = sulfurAtoms[j].resSeq;
