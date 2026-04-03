@@ -962,6 +962,7 @@ async function fetchPDBStructure(pdbId) {
 }
 
 // Find disulfide bonds by distance between sulfur atoms (one bond per pair)
+// Find disulfide bonds by distance between sulfur atoms (one bond per pair)
 function findDisulfideBonds(pdbContent) {
     const lines = pdbContent.split('\n');
     const sulfurAtoms = [];
@@ -992,7 +993,7 @@ function findDisulfideBonds(pdbContent) {
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bonds = [];
-    const processedPairs = new Set(); // Track processed pairs to avoid duplicates
+    const processedPairs = new Set();
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
@@ -1027,18 +1028,6 @@ function findDisulfideBonds(pdbContent) {
     return bonds;
 }
 
-// Clear all shapes from viewer
-function clearShapes() {
-    if (pdbViewer && currentShapes.length > 0) {
-        currentShapes.forEach(shapeId => {
-            try {
-                pdbViewer.removeShape(shapeId);
-            } catch(e) {}
-        });
-        currentShapes = [];
-    }
-}
-
 // Render PDB structure
 function renderPDBStructure(pdbContent, pdbId) {
     const container = document.getElementById('structure-viewer-pdb');
@@ -1066,16 +1055,12 @@ function renderPDBStructure(pdbContent, pdbId) {
     pdbViewer.zoomTo();
     
     window.pdbContentCache = pdbContent;
-    currentShapes = [];
     
     setRepresentation('cartoon');
 }
 
 function setRepresentation(type) {
     if (!pdbViewer) return;
-    
-    // Clear existing shapes before adding new ones
-    clearShapes();
     
     pdbViewer.removeAllModels();
     pdbViewer.addModel(window.pdbContentCache, 'pdb');
@@ -1098,21 +1083,32 @@ function setRepresentation(type) {
             }
         });
         
+        // Remove existing disulfide bonds before adding new ones
+        pdbViewer.removeAllShapes();
+        
         // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach((bond) => {
                 if (bond.x1 && bond.x2) {
-                    const shape = new $3Dmol.Shape();
-                    shape.addCylinder({
-                        start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                        end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                        radius: 0.1,
-                        color: 0xffaa00,
-                        fromCap: 1,
-                        toCap: 1
-                    });
-                    const shapeId = pdbViewer.addShape(shape);
-                    currentShapes.push(shapeId);
+                    try {
+                        // Create a custom shape for the bond
+                        const atoms = [
+                            {x: bond.x1, y: bond.y1, z: bond.z1},
+                            {x: bond.x2, y: bond.y2, z: bond.z2}
+                        ];
+                        
+                        // Add cylinder between the two points
+                        pdbViewer.addCylinder({
+                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                            radius: 0.1,
+                            color: 0xffaa00,
+                            fromCap: 1,
+                            toCap: 1
+                        });
+                    } catch(e) {
+                        console.error('Error adding cylinder:', e);
+                    }
                 }
             });
             console.log(`Added ${disulfideBonds.length} disulfide bond(s)`);
@@ -1138,21 +1134,25 @@ function setRepresentation(type) {
             }
         });
         
+        // Remove existing disulfide bonds before adding new ones
+        pdbViewer.removeAllShapes();
+        
         // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach((bond) => {
                 if (bond.x1 && bond.x2) {
-                    const shape = new $3Dmol.Shape();
-                    shape.addCylinder({
-                        start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                        end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                        radius: 0.12,
-                        color: 0xffaa00,
-                        fromCap: 1,
-                        toCap: 1
-                    });
-                    const shapeId = pdbViewer.addShape(shape);
-                    currentShapes.push(shapeId);
+                    try {
+                        pdbViewer.addCylinder({
+                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                            radius: 0.12,
+                            color: 0xffaa00,
+                            fromCap: 1,
+                            toCap: 1
+                        });
+                    } catch(e) {
+                        console.error('Error adding cylinder:', e);
+                    }
                 }
             });
         }
