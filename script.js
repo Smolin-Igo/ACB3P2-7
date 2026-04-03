@@ -961,12 +961,12 @@ async function fetchPDBStructure(pdbId) {
     }
 }
 
-// Find disulfide bonds by distance
+// Find disulfide bonds by distance between sulfur atoms
 function findDisulfideBonds(pdbContent) {
     const lines = pdbContent.split('\n');
     const sulfurAtoms = [];
     
-    // Find all sulfur atoms in cysteines
+    // Find all SG (sulfur) atoms in cysteines
     lines.forEach(line => {
         if (line.startsWith('ATOM') || line.startsWith('HETATM')) {
             const atomName = line.substring(12, 16).trim();
@@ -974,7 +974,8 @@ function findDisulfideBonds(pdbContent) {
             const chain = line.substring(21, 22).trim();
             const resSeq = parseInt(line.substring(22, 26).trim());
             
-            if ((atomName === 'SG' || atomName === 'S') && resName === 'CYS') {
+            // Look specifically for SG atom in CYS residue
+            if (atomName === 'SG' && resName === 'CYS') {
                 const x = parseFloat(line.substring(30, 38));
                 const y = parseFloat(line.substring(38, 46));
                 const z = parseFloat(line.substring(46, 54));
@@ -982,13 +983,13 @@ function findDisulfideBonds(pdbContent) {
                     chain: chain,
                     resSeq: resSeq,
                     x: x, y: y, z: z,
-                    index: sulfurAtoms.length
+                    atomName: atomName
                 });
             }
         }
     });
     
-    console.log(`Found ${sulfurAtoms.length} cysteine sulfur atoms`);
+    console.log(`Found ${sulfurAtoms.length} sulfur atoms (SG) in cysteines`);
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bonds = [];
@@ -1035,7 +1036,7 @@ function findDisulfideBonds(pdbContent) {
     
     console.log(`Found ${bonds.length} disulfide bond(s):`);
     bonds.forEach(bond => {
-        console.log(`  - CYS${bond.cys1} - CYS${bond.cys2} (${bond.distance.toFixed(2)} Å)`);
+        console.log(`  - CYS${bond.cys1} SG - CYS${bond.cys2} SG (${bond.distance.toFixed(2)} Å)`);
     });
     
     return bonds;
@@ -1056,8 +1057,9 @@ function renderPDBStructure(pdbContent, pdbId) {
         return;
     }
     
-    // Find disulfide bonds
+    // Find disulfide bonds between sulfur atoms
     disulfideBonds = findDisulfideBonds(pdbContent);
+    currentShapes = [];
     
     container.innerHTML = '';
     
@@ -1067,11 +1069,6 @@ function renderPDBStructure(pdbContent, pdbId) {
     
     window.pdbContentCache = pdbContent;
     
-    // Clear any existing shapes before rendering
-    if (pdbViewer.removeAllShapes) {
-        pdbViewer.removeAllShapes();
-    }
-    
     setRepresentation('cartoon');
 }
 
@@ -1079,7 +1076,17 @@ function setRepresentation(type) {
     if (!pdbViewer) return;
     
     pdbViewer.removeAllModels();
-    const model = pdbViewer.addModel(window.pdbContentCache, 'pdb');
+    pdbViewer.addModel(window.pdbContentCache, 'pdb');
+    
+    // Remove all existing shapes
+    if (currentShapes && currentShapes.length > 0) {
+        currentShapes.forEach(shapeId => {
+            try {
+                pdbViewer.removeShape(shapeId);
+            } catch(e) {}
+        });
+        currentShapes = [];
+    }
     
     if (type === 'cartoon') {
         // Cartoon representation
@@ -1090,27 +1097,32 @@ function setRepresentation(type) {
             } 
         });
         
-        // Highlight cysteine residues
-        pdbViewer.addStyle({resn: "CYS"}, { 
-            stick: { 
-                color: 0xffaa00,
-                radius: 0.08,
-                opacity: 0.7
-            },
+        // Highlight ONLY sulfur atoms (SG) in cysteines - not whole cysteine
+        pdbViewer.addStyle({resn: "CYS", atom: "SG"}, { 
             sphere: {
                 color: 0xffaa00,
-                scale: 0.2,
-                opacity: 0.6
+                scale: 0.25,
+                opacity: 0.9
             }
         });
         
-        // Use built-in disulfide visualization
-        pdbViewer.addStyle({}, {
-            disulfide: {
-                color: 0xffaa00,
-                radius: 0.1
-            }
-        });
+        // Add disulfide bonds as lines between sulfur atoms
+        if (disulfideBonds && disulfideBonds.length > 0) {
+            disulfideBonds.forEach(bond => {
+                if (bond.x1 && bond.x2) {
+                    const shape = new $3Dmol.Shape();
+                    shape.addLine({
+                        start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                        end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                        color: 0xffaa00,
+                        radius: 0.08
+                    });
+                    const shapeId = pdbViewer.addShape(shape);
+                    if (!currentShapes) currentShapes = [];
+                    currentShapes.push(shapeId);
+                }
+            });
+        }
         
         currentRepresentation = 'cartoon';
     } 
@@ -1121,22 +1133,32 @@ function setRepresentation(type) {
             sphere: { colorscheme: 'elem', scale: 0.25 }
         });
         
-        // Highlight cysteine residues
-        pdbViewer.addStyle({resn: "CYS"}, { 
+        // Highlight ONLY sulfur atoms (SG) in cysteines
+        pdbViewer.addStyle({resn: "CYS", atom: "SG"}, { 
             sphere: {
                 color: 0xffaa00,
-                scale: 0.3,
-                opacity: 0.7
+                scale: 0.35,
+                opacity: 0.9
             }
         });
         
-        // Use built-in disulfide visualization
-        pdbViewer.addStyle({}, {
-            disulfide: {
-                color: 0xffaa00,
-                radius: 0.12
-            }
-        });
+        // Add disulfide bonds as lines between sulfur atoms
+        if (disulfideBonds && disulfideBonds.length > 0) {
+            disulfideBonds.forEach(bond => {
+                if (bond.x1 && bond.x2) {
+                    const shape = new $3Dmol.Shape();
+                    shape.addLine({
+                        start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                        end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                        color: 0xffaa00,
+                        radius: 0.1
+                    });
+                    const shapeId = pdbViewer.addShape(shape);
+                    if (!currentShapes) currentShapes = [];
+                    currentShapes.push(shapeId);
+                }
+            });
+        }
         
         currentRepresentation = 'ballAndStick';
     }
