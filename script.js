@@ -523,10 +523,14 @@ function displayFeaturedPeptides() {
     
     let html = '';
     featured.forEach(peptide => {
+        const peptideUrl = getPeptideUrl(peptide.id, peptide.peptide_name);
+        
         html += `
-            <a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="peptide-card">
+            <div class="peptide-card" onclick="window.location.href='${peptideUrl}'" style="cursor: pointer;">
                 <div class="card-header">
-                    <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
+                    <a href="${peptideUrl}" style="text-decoration: none; color: inherit;">
+                        <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
+                    </a>
                 </div>
                 <div class="card-content">
                     <div class="card-row">
@@ -542,7 +546,7 @@ function displayFeaturedPeptides() {
                         <div class="card-value">${peptide.bbb_permeability_value || 'N/A'}</div>
                     </div>
                 </div>
-            </a>
+            </div>
         `;
     });
     
@@ -829,17 +833,18 @@ function displayTableView(container) {
                 peptide.sequence_one_letter) : 'N/A';
         
         const permDisplay = peptide.bbb_permeability_value || 'N/A';
+        const peptideUrl = getPeptideUrl(peptide.id, peptide.peptide_name);
         
         html += `
             <tr>
-                <td><strong>${peptide.peptide_name || 'N/A'}</strong></td>
+                <td><a href="${peptideUrl}" style="text-decoration: none; color: #2c5282; font-weight: bold;">${peptide.peptide_name || 'N/A'}</a></td>
                 <td style="font-family: monospace; font-size: 0.65rem;">${sequenceDisplay}</td>
                 <td>${peptide.length || 'N/A'}</td>
                 <td>${peptide.molecular_weight ? peptide.molecular_weight.toFixed(1) : 'N/A'}</td>
                 <td>${permDisplay}</td>
                 <td>${peptide.source_organism || 'N/A'}</td>
                 <td>${peptide.PDB || '—'}</td>
-                <td><a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.65rem; text-decoration: none;">View</a></td>
+                <td><a href="${peptideUrl}" class="btn-primary" style="padding: 0.25rem 0.6rem; font-size: 0.65rem; text-decoration: none;">View</a></td>
             </tr>
         `;
     });
@@ -853,11 +858,14 @@ function displayCardBrowseView(container) {
     
     filteredPeptides.forEach(peptide => {
         const permDisplay = peptide.bbb_permeability_value || 'N/A';
+        const peptideUrl = getPeptideUrl(peptide.id, peptide.peptide_name);
         
         html += `
-            <a href="${getPeptideUrl(peptide.id, peptide.peptide_name)}" class="peptide-card">
+            <div class="peptide-card" onclick="window.location.href='${peptideUrl}'" style="cursor: pointer;">
                 <div class="card-header">
-                    <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
+                    <a href="${peptideUrl}" style="text-decoration: none; color: inherit;">
+                        <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
+                    </a>
                 </div>
                 <div class="card-content">
                     <div class="card-row">
@@ -877,7 +885,7 @@ function displayCardBrowseView(container) {
                         <div class="card-value">${peptide.PDB || '—'}</div>
                     </div>
                 </div>
-            </a>
+            </div>
         `;
     });
     
