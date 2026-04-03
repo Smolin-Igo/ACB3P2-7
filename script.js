@@ -968,6 +968,9 @@ function renderPDBStructure(pdbContent, pdbId) {
         return;
     }
     
+    // Check for disulfide bonds
+    checkDisulfideBonds(pdbContent);
+    
     container.innerHTML = '';
     
     pdbViewer = $3Dmol.createViewer(container, { backgroundColor: 'white' });
@@ -994,26 +997,26 @@ function setRepresentation(type) {
             } 
         });
         
-        // Add disulfide bonds as yellow sticks
+        // Add disulfide bonds as yellow sticks (force style)
         pdbViewer.addStyle({}, { 
             disulfide: { 
                 color: 'gold',
-                radius: 0.15,
+                radius: 0.2,
                 opacity: 1
             } 
         });
         
-        // Also show cysteine side chains to highlight disulfide positions
+        // Also highlight cysteine residues
         pdbViewer.addStyle({chain: null, resn: "CYS"}, { 
             stick: { 
                 color: 'gold',
-                radius: 0.12,
-                opacity: 0.8
+                radius: 0.15,
+                opacity: 0.9
             },
             sphere: {
                 color: 'gold',
-                scale: 0.25,
-                opacity: 0.6
+                scale: 0.3,
+                opacity: 0.7
             }
         });
         
@@ -1037,18 +1040,87 @@ function setRepresentation(type) {
         
         currentRepresentation = 'ballAndStick';
     }
+    else if (type === 'disulfide') {
+        // Special representation focused on disulfide bridges
+        // Make everything transparent
+        pdbViewer.setStyle({}, { 
+            cartoon: { 
+                colorscheme: 'ss',
+                opacity: 0.2
+            },
+            stick: { 
+                colorscheme: 'elem',
+                radius: 0.08,
+                opacity: 0.2
+            }
+        });
+        
+        // Highlight disulfide bonds with thick yellow sticks
+        pdbViewer.addStyle({}, { 
+            disulfide: { 
+                color: 'gold',
+                radius: 0.3,
+                opacity: 1
+            } 
+        });
+        
+        // Highlight cysteine residues as large yellow spheres
+        pdbViewer.addStyle({chain: null, resn: "CYS"}, { 
+            sphere: { 
+                color: 'gold',
+                scale: 0.5,
+                opacity: 0.9
+            },
+            stick: {
+                color: 'gold',
+                radius: 0.2,
+                opacity: 0.9
+            }
+        });
+        
+        currentRepresentation = 'disulfide';
+    }
     
     pdbViewer.zoomTo();
     pdbViewer.render();
     
     const cartoonBtn = document.getElementById('btn-cartoon');
     const ballBtn = document.getElementById('btn-ballstick');
+    const disulfideBtn = document.getElementById('btn-disulfide');
     
     if (cartoonBtn) cartoonBtn.classList.remove('active');
     if (ballBtn) ballBtn.classList.remove('active');
+    if (disulfideBtn) disulfideBtn.classList.remove('active');
     
     if (type === 'cartoon' && cartoonBtn) cartoonBtn.classList.add('active');
     else if (type === 'ballAndStick' && ballBtn) ballBtn.classList.add('active');
+    else if (type === 'disulfide' && disulfideBtn) disulfideBtn.classList.add('active');
+}
+
+// Function to check and log disulfide bonds in the structure
+function checkDisulfideBonds(pdbContent) {
+    // Look for SSBOND records in PDB
+    const lines = pdbContent.split('\n');
+    const ssbonds = [];
+    
+    lines.forEach(line => {
+        if (line.startsWith('SSBOND')) {
+            const cys1 = line.substring(15, 17).trim();
+            const cys2 = line.substring(25, 27).trim();
+            const chain1 = line.substring(11, 12).trim();
+            const chain2 = line.substring(21, 22).trim();
+            ssbonds.push(`CYS${cys1} (chain ${chain1}) - CYS${cys2} (chain ${chain2})`);
+        }
+    });
+    
+    if (ssbonds.length > 0) {
+        console.log(`Found ${ssbonds.length} disulfide bridge(s):`);
+        ssbonds.forEach(bond => console.log(`  - ${bond}`));
+    } else {
+        console.log('No SSBOND records found in PDB file');
+    }
+    
+    return ssbonds;
 }
 
 function resetPDBView() {
