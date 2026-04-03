@@ -12,7 +12,7 @@ let pdbViewer = null;
 let pdbContentCache = null;
 let currentRepresentation = 'cartoon';
 let disulfideBonds = [];
-
+let currentShapes = [];
 
 // Selected amino acids for filtering
 let selectedAAs = [];
@@ -975,7 +975,6 @@ function findDisulfideBonds(pdbContent) {
             const resName = line.substring(17, 20).trim();
             const resSeq = parseInt(line.substring(22, 26).trim());
             
-            // Look for SG atom in CYS residue (also check for 'S' as alternative)
             if ((atomName === 'SG' || atomName === 'S') && resName === 'CYS') {
                 const x = parseFloat(line.substring(30, 38));
                 const y = parseFloat(line.substring(38, 46));
@@ -985,8 +984,6 @@ function findDisulfideBonds(pdbContent) {
                     resSeq: resSeq,
                     x: x, y: y, z: z
                 });
-                
-                console.log(`Found sulfur atom: CYS${resSeq} at (${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)})`);
             }
         }
     });
@@ -995,10 +992,14 @@ function findDisulfideBonds(pdbContent) {
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bonds = [];
+    const processedPairs = new Set(); // Track processed pairs to avoid duplicates
     
-    // Simple double loop - each pair checked exactly once
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
+            const pairKey = `${Math.min(sulfurAtoms[i].resSeq, sulfurAtoms[j].resSeq)}-${Math.max(sulfurAtoms[i].resSeq, sulfurAtoms[j].resSeq)}`;
+            
+            if (processedPairs.has(pairKey)) continue;
+            
             const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
             const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
@@ -1016,14 +1017,26 @@ function findDisulfideBonds(pdbContent) {
                     y2: sulfurAtoms[j].y,
                     z2: sulfurAtoms[j].z
                 });
+                processedPairs.add(pairKey);
                 console.log(`Found disulfide bond: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq} (${distance.toFixed(2)} Å)`);
             }
         }
     }
     
-    console.log(`Total disulfide bonds found: ${bonds.length}`);
-    
+    console.log(`Total unique disulfide bonds found: ${bonds.length}`);
     return bonds;
+}
+
+// Clear all shapes from viewer
+function clearShapes() {
+    if (pdbViewer && currentShapes.length > 0) {
+        currentShapes.forEach(shapeId => {
+            try {
+                pdbViewer.removeShape(shapeId);
+            } catch(e) {}
+        });
+        currentShapes = [];
+    }
 }
 
 // Render PDB structure
@@ -1043,7 +1056,7 @@ function renderPDBStructure(pdbContent, pdbId) {
     
     console.log('Rendering PDB structure for:', pdbId);
     
-    // Find disulfide bonds (each pair only once)
+    // Find disulfide bonds
     disulfideBonds = findDisulfideBonds(pdbContent);
     
     container.innerHTML = '';
@@ -1053,12 +1066,16 @@ function renderPDBStructure(pdbContent, pdbId) {
     pdbViewer.zoomTo();
     
     window.pdbContentCache = pdbContent;
+    currentShapes = [];
     
     setRepresentation('cartoon');
 }
 
 function setRepresentation(type) {
     if (!pdbViewer) return;
+    
+    // Clear existing shapes before adding new ones
+    clearShapes();
     
     pdbViewer.removeAllModels();
     pdbViewer.addModel(window.pdbContentCache, 'pdb');
@@ -1083,9 +1100,10 @@ function setRepresentation(type) {
         
         // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach((bond, index) => {
+            disulfideBonds.forEach((bond) => {
                 if (bond.x1 && bond.x2) {
-                    pdbViewer.addCylinder({
+                    const shape = new $3Dmol.Shape();
+                    shape.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
                         radius: 0.1,
@@ -1093,9 +1111,11 @@ function setRepresentation(type) {
                         fromCap: 1,
                         toCap: 1
                     });
-                    console.log(`Added bond ${index + 1}: CYS${bond.cys1} - CYS${bond.cys2}`);
+                    const shapeId = pdbViewer.addShape(shape);
+                    currentShapes.push(shapeId);
                 }
             });
+            console.log(`Added ${disulfideBonds.length} disulfide bond(s)`);
         } else {
             console.log('No disulfide bonds to add');
         }
@@ -1120,9 +1140,10 @@ function setRepresentation(type) {
         
         // Add disulfide bonds - each bond only once
         if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach((bond, index) => {
+            disulfideBonds.forEach((bond) => {
                 if (bond.x1 && bond.x2) {
-                    pdbViewer.addCylinder({
+                    const shape = new $3Dmol.Shape();
+                    shape.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
                         radius: 0.12,
@@ -1130,6 +1151,8 @@ function setRepresentation(type) {
                         fromCap: 1,
                         toCap: 1
                     });
+                    const shapeId = pdbViewer.addShape(shape);
+                    currentShapes.push(shapeId);
                 }
             });
         }
@@ -1155,6 +1178,7 @@ function resetPDBView() {
     pdbViewer.zoomTo();
     pdbViewer.render();
 }
+
 
 // ========== PEPTIDE DETAIL PAGE FUNCTIONS ==========
 
