@@ -969,7 +969,12 @@ function renderPDBStructure(pdbContent, pdbId) {
     }
     
     // Check for disulfide bonds
-    checkDisulfideBonds(pdbContent);
+    const ssbonds = checkDisulfideBonds(pdbContent);
+    const forcedBonds = forceDisulfideBonds(null, pdbContent);
+    
+    if (ssbonds.length === 0 && forcedBonds.length > 0) {
+        console.log('Using distance-based disulfide bond detection');
+    }
     
     container.innerHTML = '';
     
@@ -1122,6 +1127,51 @@ function checkDisulfideBonds(pdbContent) {
     
     return ssbonds;
 }
+
+// Force add disulfide bonds based on cysteine positions
+function forceDisulfideBonds(pdbViewer, pdbContent) {
+    // Parse PDB to find sulfur atoms in cysteines
+    const lines = pdbContent.split('\n');
+    const sulfurAtoms = [];
+    
+    lines.forEach(line => {
+        if (line.startsWith('ATOM') && line.substring(13, 15).trim() === 'SG' && line.substring(17, 20).trim() === 'CYS') {
+            const x = parseFloat(line.substring(30, 38));
+            const y = parseFloat(line.substring(38, 46));
+            const z = parseFloat(line.substring(46, 54));
+            const resSeq = parseInt(line.substring(22, 26));
+            sulfurAtoms.push({ x, y, z, resSeq, line });
+        }
+    });
+    
+    // Find pairs of sulfur atoms within 2.5 Å (typical S-S bond distance)
+    const pairs = [];
+    for (let i = 0; i < sulfurAtoms.length; i++) {
+        for (let j = i + 1; j < sulfurAtoms.length; j++) {
+            const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
+            const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
+            const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
+            const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+            
+            // S-S bond distance is typically 2.0-2.2 Å
+            if (distance > 1.8 && distance < 2.5) {
+                pairs.push({
+                    cys1: sulfurAtoms[i].resSeq,
+                    cys2: sulfurAtoms[j].resSeq,
+                    distance: distance
+                });
+            }
+        }
+    }
+    
+    if (pairs.length > 0) {
+        console.log(`Found ${pairs.length} potential disulfide bond(s) by distance:`);
+        pairs.forEach(pair => console.log(`  - CYS${pair.cys1} - CYS${pair.cys2} (${pair.distance.toFixed(2)} Å)`));
+    }
+    
+    return pairs;
+}
+
 
 function resetPDBView() {
     if (!pdbViewer) return;
