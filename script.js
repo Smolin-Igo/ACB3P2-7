@@ -966,30 +966,32 @@ function findDisulfideBonds(pdbContent) {
     const lines = pdbContent.split('\n');
     const sulfurAtoms = [];
     
+    console.log('Searching for sulfur atoms in cysteines...');
+    
     // Find all SG (sulfur) atoms in cysteines
     lines.forEach(line => {
-        if (line.startsWith('ATOM') || line.startsWith('HETATM')) {
+        if (line.startsWith('ATOM')) {
             const atomName = line.substring(12, 16).trim();
             const resName = line.substring(17, 20).trim();
-            const chain = line.substring(21, 22).trim();
             const resSeq = parseInt(line.substring(22, 26).trim());
             
-            // Look specifically for SG atom in CYS residue
+            // Look for SG atom in CYS residue
             if (atomName === 'SG' && resName === 'CYS') {
                 const x = parseFloat(line.substring(30, 38));
                 const y = parseFloat(line.substring(38, 46));
                 const z = parseFloat(line.substring(46, 54));
+                
                 sulfurAtoms.push({
-                    chain: chain,
                     resSeq: resSeq,
-                    x: x, y: y, z: z,
-                    atomName: atomName
+                    x: x, y: y, z: z
                 });
+                
+                console.log(`Found SG atom: CYS${resSeq} at (${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)})`);
             }
         }
     });
     
-    console.log(`Found ${sulfurAtoms.length} sulfur atoms (SG) in cysteines`);
+    console.log(`Total sulfur atoms found: ${sulfurAtoms.length}`);
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bonds = [];
@@ -997,9 +999,6 @@ function findDisulfideBonds(pdbContent) {
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         if (usedAtoms.has(i)) continue;
-        
-        let bestMatch = null;
-        let bestDistance = Infinity;
         
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
             if (usedAtoms.has(j)) continue;
@@ -1009,35 +1008,25 @@ function findDisulfideBonds(pdbContent) {
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
             const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            if (distance >= 1.8 && distance <= 2.5 && distance < bestDistance) {
-                bestMatch = j;
-                bestDistance = distance;
+            if (distance >= 1.8 && distance <= 2.5) {
+                bonds.push({
+                    cys1: sulfurAtoms[i].resSeq,
+                    cys2: sulfurAtoms[j].resSeq,
+                    distance: distance,
+                    x1: sulfurAtoms[i].x,
+                    y1: sulfurAtoms[i].y,
+                    z1: sulfurAtoms[i].z,
+                    x2: sulfurAtoms[j].x,
+                    y2: sulfurAtoms[j].y,
+                    z2: sulfurAtoms[j].z
+                });
+                usedAtoms.add(i);
+                usedAtoms.add(j);
+                console.log(`Found disulfide bond: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq} (${distance.toFixed(2)} Å)`);
+                break;
             }
         }
-        
-        if (bestMatch !== null) {
-            bonds.push({
-                cys1: sulfurAtoms[i].resSeq,
-                chain1: sulfurAtoms[i].chain,
-                cys2: sulfurAtoms[bestMatch].resSeq,
-                chain2: sulfurAtoms[bestMatch].chain,
-                distance: bestDistance,
-                x1: sulfurAtoms[i].x,
-                y1: sulfurAtoms[i].y,
-                z1: sulfurAtoms[i].z,
-                x2: sulfurAtoms[bestMatch].x,
-                y2: sulfurAtoms[bestMatch].y,
-                z2: sulfurAtoms[bestMatch].z
-            });
-            usedAtoms.add(i);
-            usedAtoms.add(bestMatch);
-        }
     }
-    
-    console.log(`Found ${bonds.length} disulfide bond(s):`);
-    bonds.forEach(bond => {
-        console.log(`  - CYS${bond.cys1} SG - CYS${bond.cys2} SG (${bond.distance.toFixed(2)} Å)`);
-    });
     
     return bonds;
 }
@@ -1057,9 +1046,10 @@ function renderPDBStructure(pdbContent, pdbId) {
         return;
     }
     
-    // Find disulfide bonds between sulfur atoms
+    console.log('Rendering PDB structure for:', pdbId);
+    
+    // Find disulfide bonds
     disulfideBonds = findDisulfideBonds(pdbContent);
-    currentShapes = [];
     
     container.innerHTML = '';
     
@@ -1078,16 +1068,6 @@ function setRepresentation(type) {
     pdbViewer.removeAllModels();
     pdbViewer.addModel(window.pdbContentCache, 'pdb');
     
-    // Remove all existing shapes
-    if (currentShapes && currentShapes.length > 0) {
-        currentShapes.forEach(shapeId => {
-            try {
-                pdbViewer.removeShape(shapeId);
-            } catch(e) {}
-        });
-        currentShapes = [];
-    }
-    
     if (type === 'cartoon') {
         // Cartoon representation
         pdbViewer.setStyle({}, { 
@@ -1097,29 +1077,27 @@ function setRepresentation(type) {
             } 
         });
         
-        // Highlight ONLY sulfur atoms (SG) in cysteines - not whole cysteine
+        // Highlight sulfur atoms in cysteines
         pdbViewer.addStyle({resn: "CYS", atom: "SG"}, { 
             sphere: {
                 color: 0xffaa00,
-                scale: 0.25,
+                scale: 0.3,
                 opacity: 0.9
             }
         });
         
-        // Add disulfide bonds as lines between sulfur atoms
+        // Add disulfide bonds
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
-                    const shape = new $3Dmol.Shape();
-                    shape.addLine({
+                    pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                        radius: 0.1,
                         color: 0xffaa00,
-                        radius: 0.08
+                        fromCap: 1,
+                        toCap: 1
                     });
-                    const shapeId = pdbViewer.addShape(shape);
-                    if (!currentShapes) currentShapes = [];
-                    currentShapes.push(shapeId);
                 }
             });
         }
@@ -1133,29 +1111,27 @@ function setRepresentation(type) {
             sphere: { colorscheme: 'elem', scale: 0.25 }
         });
         
-        // Highlight ONLY sulfur atoms (SG) in cysteines
+        // Highlight sulfur atoms in cysteines
         pdbViewer.addStyle({resn: "CYS", atom: "SG"}, { 
             sphere: {
                 color: 0xffaa00,
-                scale: 0.35,
+                scale: 0.4,
                 opacity: 0.9
             }
         });
         
-        // Add disulfide bonds as lines between sulfur atoms
+        // Add disulfide bonds
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
-                    const shape = new $3Dmol.Shape();
-                    shape.addLine({
+                    pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                        radius: 0.12,
                         color: 0xffaa00,
-                        radius: 0.1
+                        fromCap: 1,
+                        toCap: 1
                     });
-                    const shapeId = pdbViewer.addShape(shape);
-                    if (!currentShapes) currentShapes = [];
-                    currentShapes.push(shapeId);
                 }
             });
         }
