@@ -986,19 +986,55 @@ function setRepresentation(type) {
     pdbViewer.addModel(window.pdbContentCache, 'pdb');
     
     if (type === 'cartoon') {
+        // Cartoon representation with secondary structure colors
         pdbViewer.setStyle({}, { 
             cartoon: { 
                 colorscheme: 'ss',
                 opacity: 0.9
             } 
         });
+        
+        // Add disulfide bonds as yellow sticks
+        pdbViewer.addStyle({}, { 
+            disulfide: { 
+                color: 'gold',
+                radius: 0.15,
+                opacity: 1
+            } 
+        });
+        
+        // Also show cysteine side chains to highlight disulfide positions
+        pdbViewer.addStyle({chain: null, resn: "CYS"}, { 
+            stick: { 
+                color: 'gold',
+                radius: 0.12,
+                opacity: 0.8
+            },
+            sphere: {
+                color: 'gold',
+                scale: 0.25,
+                opacity: 0.6
+            }
+        });
+        
         currentRepresentation = 'cartoon';
     } 
     else if (type === 'ballAndStick') {
+        // Ball and stick representation
         pdbViewer.setStyle({}, { 
             stick: { colorscheme: 'elem', radius: 0.15 },
             sphere: { colorscheme: 'elem', scale: 0.3 }
         });
+        
+        // Highlight disulfide bonds with thicker yellow sticks
+        pdbViewer.addStyle({}, { 
+            disulfide: { 
+                color: 'gold',
+                radius: 0.25,
+                opacity: 1
+            } 
+        });
+        
         currentRepresentation = 'ballAndStick';
     }
     
