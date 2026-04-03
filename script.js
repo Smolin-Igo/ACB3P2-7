@@ -991,8 +991,14 @@ function findDisulfideBonds(pdbContent) {
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bonds = [];
+    const usedAtoms = new Set();
+    
     for (let i = 0; i < sulfurAtoms.length; i++) {
+        if (usedAtoms.has(i)) continue;
+        
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
+            if (usedAtoms.has(j)) continue;
+            
             const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
             const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
@@ -1012,11 +1018,14 @@ function findDisulfideBonds(pdbContent) {
                     y2: sulfurAtoms[j].y,
                     z2: sulfurAtoms[j].z
                 });
+                usedAtoms.add(i);
+                usedAtoms.add(j);
+                break;
             }
         }
     }
     
-    console.log(`Found ${bonds.length} potential disulfide bond(s):`);
+    console.log(`Found ${bonds.length} disulfide bond(s):`);
     bonds.forEach(bond => {
         console.log(`  - CYS${bond.cys1} - CYS${bond.cys2} (${bond.distance.toFixed(2)} Å)`);
     });
@@ -1068,31 +1077,20 @@ function setRepresentation(type) {
             } 
         });
         
-        // Highlight cysteine residues
-        pdbViewer.addStyle({resn: "CYS"}, { 
-            stick: { 
-                color: 'gold',
-                radius: 0.15,
-                opacity: 0.9
-            },
-            sphere: {
-                color: 'gold',
-                scale: 0.35,
-                opacity: 0.8
-            }
-        });
+        // Remove cysteine highlighting - no extra styling for cysteines
         
-        // Add custom disulfide bonds as cylinders
+        // Add single custom disulfide bonds as thin cylinders
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
+                    // Remove any existing styles for this bond
                     pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                        radius: 0.18,
+                        radius: 0.1,
                         color: 0xffaa00,
-                        fromCap: 1,
-                        toCap: 1
+                        fromCap: 0,
+                        toCap: 0
                     });
                 }
             });
@@ -1107,17 +1105,17 @@ function setRepresentation(type) {
             sphere: { colorscheme: 'elem', scale: 0.25 }
         });
         
-        // Highlight disulfide bonds with thicker cylinders
+        // Add single disulfide bonds
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
                     pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                        radius: 0.22,
+                        radius: 0.12,
                         color: 0xffaa00,
-                        fromCap: 1,
-                        toCap: 1
+                        fromCap: 0,
+                        toCap: 0
                     });
                 }
             });
@@ -1202,13 +1200,12 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
                     <button id="btn-ballstick" onclick="setRepresentation('ballAndStick')">Ball & Stick</button>
                 </div>
                 <div class="structure-legend">
-                    <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
-                    <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
-                    <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
-                    <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
-                    <div class="legend-item"><div class="legend-color disulfide"></div><span>Disulfide Bridge (S-S)</span></div>
-                    <div class="legend-item"><div class="legend-color cysteine"></div><span>Cysteine (C)</span></div>
-                </div>
+    <div class="legend-item"><div class="legend-color carbon"></div><span>Carbon (C)</span></div>
+    <div class="legend-item"><div class="legend-color oxygen"></div><span>Oxygen (O)</span></div>
+    <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
+    <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
+    <div class="legend-item"><div class="legend-color disulfide"></div><span>Disulfide Bridge (S-S)</span></div>
+</div>
                 <div class="pdb-info">
                     <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
                     <a href="https://www.rcsb.org/structure/${pdbId || peptide.PDB}" target="_blank">View on RCSB.org</a>
