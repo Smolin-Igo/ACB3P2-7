@@ -975,7 +975,6 @@ function findDisulfideBonds(pdbContent) {
             const resName = line.substring(17, 20).trim();
             const resSeq = parseInt(line.substring(22, 26).trim());
             
-            // Look specifically for sulfur atom (SG) in CYS residue
             if ((atomName === 'SG' || atomName === 'S') && resName === 'CYS') {
                 const x = parseFloat(line.substring(30, 38));
                 const y = parseFloat(line.substring(38, 46));
@@ -987,8 +986,6 @@ function findDisulfideBonds(pdbContent) {
                     atomName: atomName,
                     resName: resName
                 });
-                
-                console.log(`Found cysteine sulfur: CYS${resSeq} ${atomName} at (${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)})`);
             }
         }
     });
@@ -997,21 +994,17 @@ function findDisulfideBonds(pdbContent) {
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bondsMap = new Map();
+    const sulfurInBonds = new Set(); // Track which cysteines participate in bonds
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
-            // Skip if it's the same residue
-            if (sulfurAtoms[i].resSeq === sulfurAtoms[j].resSeq) {
-                console.log(`Skipping same residue: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq}`);
-                continue;
-            }
+            if (sulfurAtoms[i].resSeq === sulfurAtoms[j].resSeq) continue;
             
             const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
             const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
             const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            // Typical disulfide bond distance is 2.0-2.1 Å
             if (distance >= 1.8 && distance <= 2.5) {
                 const cys1 = sulfurAtoms[i].resSeq;
                 const cys2 = sulfurAtoms[j].resSeq;
@@ -1029,9 +1022,9 @@ function findDisulfideBonds(pdbContent) {
                         y2: sulfurAtoms[j].y,
                         z2: sulfurAtoms[j].z
                     });
+                    sulfurInBonds.add(cys1);
+                    sulfurInBonds.add(cys2);
                     console.log(`Found disulfide bond: CYS${cys1} - CYS${cys2} (${distance.toFixed(2)} Å)`);
-                } else {
-                    console.log(`Skipping duplicate bond: CYS${cys1} - CYS${cys2}`);
                 }
             }
         }
@@ -1039,8 +1032,9 @@ function findDisulfideBonds(pdbContent) {
     
     const bonds = Array.from(bondsMap.values());
     console.log(`Total unique disulfide bonds found: ${bonds.length}`);
+    console.log(`Cysteines involved in bonds: ${Array.from(sulfurInBonds).join(', ')}`);
     
-    return bonds;
+    return { bonds, sulfurInBonds };
 }
 
 // Render PDB structure
@@ -1060,8 +1054,10 @@ function renderPDBStructure(pdbContent, pdbId) {
     
     console.log('Rendering PDB structure for:', pdbId);
     
-    // Find disulfide bonds (unique pairs only)
-    disulfideBonds = findDisulfideBonds(pdbContent);
+    // Find disulfide bonds and which cysteines participate
+    const result = findDisulfideBonds(pdbContent);
+    disulfideBonds = result.bonds;
+    const sulfurInBonds = result.sulfurInBonds;
     
     container.innerHTML = '';
     
@@ -1070,6 +1066,7 @@ function renderPDBStructure(pdbContent, pdbId) {
     pdbViewer.zoomTo();
     
     window.pdbContentCache = pdbContent;
+    window.sulfurInBonds = sulfurInBonds; // Store for use in setRepresentation
     
     setRepresentation('cartoon');
 }
@@ -1089,49 +1086,52 @@ function setRepresentation(type) {
             } 
         });
         
-        // Highlight sulfur atoms in cysteines
-        pdbViewer.addStyle({resn: "CYS", atom: "SG"}, { 
-            sphere: {
-                color: 0xffaa00,
-                scale: 0.3,
-                opacity: 0.9
-            }
-        });
+        // Highlight ONLY sulfur atoms that participate in disulfide bonds
+        if (window.sulfurInBonds && disulfideBonds.length > 0) {
+            // For each bond, highlight the two sulfur atoms
+            disulfideBonds.forEach(bond => {
+                // Highlight sulfur atom of first cysteine
+                pdbViewer.addStyle({resn: "CYS", resi: bond.cys1, atom: "SG"}, { 
+                    sphere: {
+                        color: 0xffaa00,
+                        scale: 0.35,
+                        opacity: 0.9
+                    }
+                });
+                // Highlight sulfur atom of second cysteine
+                pdbViewer.addStyle({resn: "CYS", resi: bond.cys2, atom: "SG"}, { 
+                    sphere: {
+                        color: 0xffaa00,
+                        scale: 0.35,
+                        opacity: 0.9
+                    }
+                });
+            });
+        }
         
         // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
-        // Add disulfide bonds - each bond only once, skip self-bonds
-if (disulfideBonds && disulfideBonds.length > 0) {
-    let addedCount = 0;
-    disulfideBonds.forEach((bond, index) => {
-        // Skip if it's the same residue
-        if (bond.cys1 === bond.cys2) {
-            console.log(`Skipping self-bond: CYS${bond.cys1} - CYS${bond.cys2}`);
-            return;
+        // Add disulfide bonds as cylinders
+        if (disulfideBonds && disulfideBonds.length > 0) {
+            disulfideBonds.forEach((bond) => {
+                if (bond.x1 && bond.x2) {
+                    try {
+                        pdbViewer.addCylinder({
+                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                            radius: 0.1,
+                            color: 0xffaa00,
+                            fromCap: 1,
+                            toCap: 1
+                        });
+                    } catch(e) {
+                        console.error('Error adding cylinder:', e);
+                    }
+                }
+            });
+            console.log(`Added ${disulfideBonds.length} disulfide bond(s)`);
         }
-        
-        if (bond.x1 && bond.x2) {
-            try {
-                pdbViewer.addCylinder({
-                    start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                    end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                    radius: 0.1,
-                    color: 0xffaa00,
-                    fromCap: 1,
-                    toCap: 1
-                });
-                addedCount++;
-                console.log(`Added bond ${addedCount}: CYS${bond.cys1} - CYS${bond.cys2}`);
-            } catch(e) {
-                console.error('Error adding cylinder:', e);
-            }
-        }
-    });
-    console.log(`Total added: ${addedCount} disulfide bond(s)`);
-} else {
-    console.log('No disulfide bonds to add');
-}
         
         currentRepresentation = 'cartoon';
     } 
@@ -1142,42 +1142,48 @@ if (disulfideBonds && disulfideBonds.length > 0) {
             sphere: { colorscheme: 'elem', scale: 0.25 }
         });
         
-        // Highlight sulfur atoms in cysteines
-        pdbViewer.addStyle({resn: "CYS", atom: "SG"}, { 
-            sphere: {
-                color: 0xffaa00,
-                scale: 0.4,
-                opacity: 0.9
-            }
-        });
+        // Highlight ONLY sulfur atoms that participate in disulfide bonds
+        if (window.sulfurInBonds && disulfideBonds.length > 0) {
+            disulfideBonds.forEach(bond => {
+                pdbViewer.addStyle({resn: "CYS", resi: bond.cys1, atom: "SG"}, { 
+                    sphere: {
+                        color: 0xffaa00,
+                        scale: 0.45,
+                        opacity: 0.9
+                    }
+                });
+                pdbViewer.addStyle({resn: "CYS", resi: bond.cys2, atom: "SG"}, { 
+                    sphere: {
+                        color: 0xffaa00,
+                        scale: 0.45,
+                        opacity: 0.9
+                    }
+                });
+            });
+        }
         
         // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
-        // Add disulfide bonds - each bond only once, skip self-bonds
-if (disulfideBonds && disulfideBonds.length > 0) {
-    disulfideBonds.forEach((bond) => {
-        // Skip if it's the same residue
-        if (bond.cys1 === bond.cys2) {
-            return;
+        // Add disulfide bonds as cylinders
+        if (disulfideBonds && disulfideBonds.length > 0) {
+            disulfideBonds.forEach((bond) => {
+                if (bond.x1 && bond.x2) {
+                    try {
+                        pdbViewer.addCylinder({
+                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                            radius: 0.12,
+                            color: 0xffaa00,
+                            fromCap: 1,
+                            toCap: 1
+                        });
+                    } catch(e) {
+                        console.error('Error adding cylinder:', e);
+                    }
+                }
+            });
         }
-        
-        if (bond.x1 && bond.x2) {
-            try {
-                pdbViewer.addCylinder({
-                    start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                    end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                    radius: 0.12,
-                    color: 0xffaa00,
-                    fromCap: 1,
-                    toCap: 1
-                });
-            } catch(e) {
-                console.error('Error adding cylinder:', e);
-            }
-        }
-    });
-}
         
         currentRepresentation = 'ballAndStick';
     }
