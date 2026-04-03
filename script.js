@@ -981,7 +981,7 @@ function findDisulfideBonds(pdbContent) {
                     chain: chain,
                     resSeq: resSeq,
                     x: x, y: y, z: z,
-                    line: line
+                    index: sulfurAtoms.length
                 });
             }
         }
@@ -996,6 +996,9 @@ function findDisulfideBonds(pdbContent) {
     for (let i = 0; i < sulfurAtoms.length; i++) {
         if (usedAtoms.has(i)) continue;
         
+        let bestMatch = null;
+        let bestDistance = Infinity;
+        
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
             if (usedAtoms.has(j)) continue;
             
@@ -1004,24 +1007,28 @@ function findDisulfideBonds(pdbContent) {
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
             const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            if (distance >= 1.8 && distance <= 2.5) {
-                bonds.push({
-                    cys1: sulfurAtoms[i].resSeq,
-                    chain1: sulfurAtoms[i].chain,
-                    cys2: sulfurAtoms[j].resSeq,
-                    chain2: sulfurAtoms[j].chain,
-                    distance: distance,
-                    x1: sulfurAtoms[i].x,
-                    y1: sulfurAtoms[i].y,
-                    z1: sulfurAtoms[i].z,
-                    x2: sulfurAtoms[j].x,
-                    y2: sulfurAtoms[j].y,
-                    z2: sulfurAtoms[j].z
-                });
-                usedAtoms.add(i);
-                usedAtoms.add(j);
-                break;
+            if (distance >= 1.8 && distance <= 2.5 && distance < bestDistance) {
+                bestMatch = j;
+                bestDistance = distance;
             }
+        }
+        
+        if (bestMatch !== null) {
+            bonds.push({
+                cys1: sulfurAtoms[i].resSeq,
+                chain1: sulfurAtoms[i].chain,
+                cys2: sulfurAtoms[bestMatch].resSeq,
+                chain2: sulfurAtoms[bestMatch].chain,
+                distance: bestDistance,
+                x1: sulfurAtoms[i].x,
+                y1: sulfurAtoms[i].y,
+                z1: sulfurAtoms[i].z,
+                x2: sulfurAtoms[bestMatch].x,
+                y2: sulfurAtoms[bestMatch].y,
+                z2: sulfurAtoms[bestMatch].z
+            });
+            usedAtoms.add(i);
+            usedAtoms.add(bestMatch);
         }
     }
     
@@ -1059,6 +1066,11 @@ function renderPDBStructure(pdbContent, pdbId) {
     
     window.pdbContentCache = pdbContent;
     
+    // Clear any existing shapes before rendering
+    if (pdbViewer.removeAllShapes) {
+        pdbViewer.removeAllShapes();
+    }
+    
     setRepresentation('cartoon');
 }
 
@@ -1077,13 +1089,27 @@ function setRepresentation(type) {
             } 
         });
         
-        // Remove cysteine highlighting - no extra styling for cysteines
+        // Highlight cysteine residues (smaller)
+        pdbViewer.addStyle({resn: "CYS"}, { 
+            stick: { 
+                color: 0xffaa00,
+                radius: 0.08,
+                opacity: 0.7
+            },
+            sphere: {
+                color: 0xffaa00,
+                scale: 0.2,
+                opacity: 0.6
+            }
+        });
+        
+        // Remove any existing cylinders to avoid duplicates
+        pdbViewer.removeAllShapes();
         
         // Add single custom disulfide bonds as thin cylinders
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
-                    // Remove any existing styles for this bond
                     pdbViewer.addCylinder({
                         start: {x: bond.x1, y: bond.y1, z: bond.z1},
                         end: {x: bond.x2, y: bond.y2, z: bond.z2},
@@ -1104,6 +1130,18 @@ function setRepresentation(type) {
             stick: { colorscheme: 'elem', radius: 0.12 },
             sphere: { colorscheme: 'elem', scale: 0.25 }
         });
+        
+        // Highlight cysteine residues (smaller)
+        pdbViewer.addStyle({resn: "CYS"}, { 
+            sphere: {
+                color: 0xffaa00,
+                scale: 0.3,
+                opacity: 0.7
+            }
+        });
+        
+        // Remove any existing cylinders to avoid duplicates
+        pdbViewer.removeAllShapes();
         
         // Add single disulfide bonds
         if (disulfideBonds && disulfideBonds.length > 0) {
@@ -1205,6 +1243,7 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
     <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
     <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
     <div class="legend-item"><div class="legend-color disulfide"></div><span>Disulfide Bridge (S-S)</span></div>
+    <div class="legend-item"><div class="legend-color cysteine"></div><span>Cysteine (C)</span></div>
 </div>
                 <div class="pdb-info">
                     <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
