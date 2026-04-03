@@ -968,13 +968,14 @@ function findDisulfideBonds(pdbContent) {
     
     console.log('Searching for sulfur atoms in cysteines...');
     
-    // Find all SG (sulfur) atoms in cysteines
+    // Find all SG (sulfur) atoms ONLY in cysteines
     lines.forEach(line => {
         if (line.startsWith('ATOM')) {
             const atomName = line.substring(12, 16).trim();
             const resName = line.substring(17, 20).trim();
             const resSeq = parseInt(line.substring(22, 26).trim());
             
+            // Look specifically for sulfur atom (SG) in CYS residue
             if ((atomName === 'SG' || atomName === 'S') && resName === 'CYS') {
                 const x = parseFloat(line.substring(30, 38));
                 const y = parseFloat(line.substring(38, 46));
@@ -983,20 +984,23 @@ function findDisulfideBonds(pdbContent) {
                 sulfurAtoms.push({
                     resSeq: resSeq,
                     x: x, y: y, z: z,
-                    chain: line.substring(21, 22).trim()
+                    atomName: atomName,
+                    resName: resName
                 });
+                
+                console.log(`Found cysteine sulfur: CYS${resSeq} ${atomName} at (${x.toFixed(3)}, ${y.toFixed(3)}, ${z.toFixed(3)})`);
             }
         }
     });
     
-    console.log(`Total sulfur atoms found: ${sulfurAtoms.length}`);
+    console.log(`Total cysteine sulfur atoms found: ${sulfurAtoms.length}`);
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
-    const bondsMap = new Map(); // Use Map to store unique bonds by pair key
+    const bondsMap = new Map();
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
-            // Skip if it's the same residue (should not happen with j = i+1, but safe)
+            // Skip if it's the same residue
             if (sulfurAtoms[i].resSeq === sulfurAtoms[j].resSeq) {
                 console.log(`Skipping same residue: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq}`);
                 continue;
@@ -1007,13 +1011,12 @@ function findDisulfideBonds(pdbContent) {
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
             const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
             
-            if (distance >= 1.8 && distance <= 4.5) {
-                // Create a unique key for this pair of cysteines (order independent)
+            // Typical disulfide bond distance is 2.0-2.1 Å
+            if (distance >= 1.8 && distance <= 2.5) {
                 const cys1 = sulfurAtoms[i].resSeq;
                 const cys2 = sulfurAtoms[j].resSeq;
                 const pairKey = `${Math.min(cys1, cys2)}-${Math.max(cys1, cys2)}`;
                 
-                // Only add if we haven't seen this pair before
                 if (!bondsMap.has(pairKey)) {
                     bondsMap.set(pairKey, {
                         cys1: cys1,
@@ -1034,7 +1037,6 @@ function findDisulfideBonds(pdbContent) {
         }
     }
     
-    // Convert Map values to array
     const bonds = Array.from(bondsMap.values());
     console.log(`Total unique disulfide bonds found: ${bonds.length}`);
     
