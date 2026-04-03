@@ -983,7 +983,7 @@ function findDisulfideBonds(pdbContent) {
                 sulfurAtoms.push({
                     resSeq: resSeq,
                     x: x, y: y, z: z,
-                    chain: line.substring(21, 22).trim() // Get chain info
+                    chain: line.substring(21, 22).trim()
                 });
             }
         }
@@ -996,6 +996,12 @@ function findDisulfideBonds(pdbContent) {
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
+            // Skip if it's the same residue (should not happen with j = i+1, but safe)
+            if (sulfurAtoms[i].resSeq === sulfurAtoms[j].resSeq) {
+                console.log(`Skipping same residue: CYS${sulfurAtoms[i].resSeq} - CYS${sulfurAtoms[j].resSeq}`);
+                continue;
+            }
+            
             const dx = sulfurAtoms[i].x - sulfurAtoms[j].x;
             const dy = sulfurAtoms[i].y - sulfurAtoms[j].y;
             const dz = sulfurAtoms[i].z - sulfurAtoms[j].z;
@@ -1093,29 +1099,37 @@ function setRepresentation(type) {
         // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
-        // Add disulfide bonds - each bond only once
-        if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach((bond, index) => {
-                if (bond.x1 && bond.x2) {
-                    try {
-                        pdbViewer.addCylinder({
-                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                            radius: 0.1,
-                            color: 0xffaa00,
-                            fromCap: 1,
-                            toCap: 1
-                        });
-                        console.log(`Added bond ${index + 1}: CYS${bond.cys1} - CYS${bond.cys2}`);
-                    } catch(e) {
-                        console.error('Error adding cylinder:', e);
-                    }
-                }
-            });
-            console.log(`Total added: ${disulfideBonds.length} disulfide bond(s)`);
-        } else {
-            console.log('No disulfide bonds to add');
+        // Add disulfide bonds - each bond only once, skip self-bonds
+if (disulfideBonds && disulfideBonds.length > 0) {
+    let addedCount = 0;
+    disulfideBonds.forEach((bond, index) => {
+        // Skip if it's the same residue
+        if (bond.cys1 === bond.cys2) {
+            console.log(`Skipping self-bond: CYS${bond.cys1} - CYS${bond.cys2}`);
+            return;
         }
+        
+        if (bond.x1 && bond.x2) {
+            try {
+                pdbViewer.addCylinder({
+                    start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                    end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                    radius: 0.1,
+                    color: 0xffaa00,
+                    fromCap: 1,
+                    toCap: 1
+                });
+                addedCount++;
+                console.log(`Added bond ${addedCount}: CYS${bond.cys1} - CYS${bond.cys2}`);
+            } catch(e) {
+                console.error('Error adding cylinder:', e);
+            }
+        }
+    });
+    console.log(`Total added: ${addedCount} disulfide bond(s)`);
+} else {
+    console.log('No disulfide bonds to add');
+}
         
         currentRepresentation = 'cartoon';
     } 
@@ -1138,25 +1152,30 @@ function setRepresentation(type) {
         // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
-        // Add disulfide bonds - each bond only once
-        if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach((bond, index) => {
-                if (bond.x1 && bond.x2) {
-                    try {
-                        pdbViewer.addCylinder({
-                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                            radius: 0.12,
-                            color: 0xffaa00,
-                            fromCap: 1,
-                            toCap: 1
-                        });
-                    } catch(e) {
-                        console.error('Error adding cylinder:', e);
-                    }
-                }
-            });
+        // Add disulfide bonds - each bond only once, skip self-bonds
+if (disulfideBonds && disulfideBonds.length > 0) {
+    disulfideBonds.forEach((bond) => {
+        // Skip if it's the same residue
+        if (bond.cys1 === bond.cys2) {
+            return;
         }
+        
+        if (bond.x1 && bond.x2) {
+            try {
+                pdbViewer.addCylinder({
+                    start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                    end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                    radius: 0.12,
+                    color: 0xffaa00,
+                    fromCap: 1,
+                    toCap: 1
+                });
+            } catch(e) {
+                console.error('Error adding cylinder:', e);
+            }
+        }
+    });
+}
         
         currentRepresentation = 'ballAndStick';
     }
