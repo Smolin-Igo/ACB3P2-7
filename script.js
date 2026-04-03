@@ -528,9 +528,7 @@ function displayFeaturedPeptides() {
         html += `
             <div class="peptide-card" onclick="window.location.href='${peptideUrl}'" style="cursor: pointer;">
                 <div class="card-header">
-                    <a href="${peptideUrl}" style="text-decoration: none; color: inherit;">
-                        <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
-                    </a>
+                    <h3 style="color: #2c5282;">${peptide.peptide_name || 'Unnamed Peptide'}</h3>
                 </div>
                 <div class="card-content">
                     <div class="card-row">
@@ -837,7 +835,13 @@ function displayTableView(container) {
         
         html += `
             <tr>
-                <td><a href="${peptideUrl}" style="text-decoration: none; color: #2c5282; font-weight: bold;">${peptide.peptide_name || 'N/A'}</a></td>
+                <td style="padding: 0.7rem 0.5rem;">
+                    <a href="${peptideUrl}" style="text-decoration: none; color: #2c5282; font-weight: bold; display: inline-block; padding: 0.2rem 0; border-bottom: 1px solid transparent; transition: border-color 0.2s;" 
+                       onmouseover="this.style.borderBottomColor='#4299e1'" 
+                       onmouseout="this.style.borderBottomColor='transparent'">
+                        ${peptide.peptide_name || 'N/A'}
+                    </a>
+                </td>
                 <td style="font-family: monospace; font-size: 0.65rem;">${sequenceDisplay}</td>
                 <td>${peptide.length || 'N/A'}</td>
                 <td>${peptide.molecular_weight ? peptide.molecular_weight.toFixed(1) : 'N/A'}</td>
@@ -863,9 +867,7 @@ function displayCardBrowseView(container) {
         html += `
             <div class="peptide-card" onclick="window.location.href='${peptideUrl}'" style="cursor: pointer;">
                 <div class="card-header">
-                    <a href="${peptideUrl}" style="text-decoration: none; color: inherit;">
-                        <h3>${peptide.peptide_name || 'Unnamed Peptide'}</h3>
-                    </a>
+                    <h3 style="color: #2c5282;">${peptide.peptide_name || 'Unnamed Peptide'}</h3>
                 </div>
                 <div class="card-content">
                     <div class="card-row">

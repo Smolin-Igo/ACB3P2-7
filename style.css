@@ -655,6 +655,25 @@ td {
     line-height: 1.5;
 }
 
+/* Style for clickable peptide name in table */
+.peptide-name-link {
+    text-decoration: none;
+    color: #2c5282;
+    font-weight: bold;
+    display: inline-block;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.peptide-name-link:hover {
+    border-bottom-color: #4299e1;
+}
+
+.peptide-name-link:active {
+    color: #1a365d;
+}
+
 /* Loading & Error */
 .loading, .error-message {
     text-align: center;
