@@ -1078,11 +1078,8 @@ function renderPDBStructure(pdbContent, pdbId) {
 function setRepresentation(type) {
     if (!pdbViewer) return;
     
-    // Save current view state
-    const currentView = pdbViewer.getView();
-    
     pdbViewer.removeAllModels();
-    pdbViewer.addModel(window.pdbContentCache, 'pdb');
+    const model = pdbViewer.addModel(window.pdbContentCache, 'pdb');
     
     if (type === 'cartoon') {
         // Cartoon representation
@@ -1107,22 +1104,13 @@ function setRepresentation(type) {
             }
         });
         
-        // Add disulfide bonds using line style (simpler)
-        if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach(bond => {
-                if (bond.x1 && bond.x2) {
-                    // Use a simple line instead of cylinder
-                    pdbViewer.addStyle({}, {
-                        line: {
-                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                            color: 0xffaa00,
-                            linewidth: 3
-                        }
-                    });
-                }
-            });
-        }
+        // Use built-in disulfide visualization
+        pdbViewer.addStyle({}, {
+            disulfide: {
+                color: 0xffaa00,
+                radius: 0.1
+            }
+        });
         
         currentRepresentation = 'cartoon';
     } 
@@ -1142,26 +1130,18 @@ function setRepresentation(type) {
             }
         });
         
-        // Add disulfide bonds
-        if (disulfideBonds && disulfideBonds.length > 0) {
-            disulfideBonds.forEach(bond => {
-                if (bond.x1 && bond.x2) {
-                    pdbViewer.addStyle({}, {
-                        line: {
-                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                            color: 0xffaa00,
-                            linewidth: 3
-                        }
-                    });
-                }
-            });
-        }
+        // Use built-in disulfide visualization
+        pdbViewer.addStyle({}, {
+            disulfide: {
+                color: 0xffaa00,
+                radius: 0.12
+            }
+        });
         
         currentRepresentation = 'ballAndStick';
     }
     
-    pdbViewer.setView(currentView);
+    pdbViewer.zoomTo();
     pdbViewer.render();
     
     const cartoonBtn = document.getElementById('btn-cartoon');
