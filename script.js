@@ -12,7 +12,6 @@ let pdbViewer = null;
 let pdbContentCache = null;
 let currentRepresentation = 'cartoon';
 let disulfideBonds = [];
-let currentShapes = [];
 
 
 // Selected amino acids for filtering
@@ -1079,16 +1078,11 @@ function renderPDBStructure(pdbContent, pdbId) {
 function setRepresentation(type) {
     if (!pdbViewer) return;
     
+    // Save current view state
+    const currentView = pdbViewer.getView();
+    
     pdbViewer.removeAllModels();
     pdbViewer.addModel(window.pdbContentCache, 'pdb');
-    
-    // Remove all existing shapes
-    if (currentShapes.length > 0) {
-        currentShapes.forEach(shapeId => {
-            pdbViewer.removeShape(shapeId);
-        });
-        currentShapes = [];
-    }
     
     if (type === 'cartoon') {
         // Cartoon representation
@@ -1099,7 +1093,7 @@ function setRepresentation(type) {
             } 
         });
         
-        // Highlight cysteine residues (small)
+        // Highlight cysteine residues
         pdbViewer.addStyle({resn: "CYS"}, { 
             stick: { 
                 color: 0xffaa00,
@@ -1113,20 +1107,19 @@ function setRepresentation(type) {
             }
         });
         
-        // Add disulfide bonds as lines (not cylinders)
+        // Add disulfide bonds using line style (simpler)
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
-                    // Create a line shape
-                    const shape = new $3Dmol.Shape();
-                    shape.addLine({
-                        start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                        end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                        color: 0xffaa00,
-                        radius: 0.1
+                    // Use a simple line instead of cylinder
+                    pdbViewer.addStyle({}, {
+                        line: {
+                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                            color: 0xffaa00,
+                            linewidth: 3
+                        }
                     });
-                    const shapeId = pdbViewer.addShape(shape);
-                    currentShapes.push(shapeId);
                 }
             });
         }
@@ -1149,19 +1142,18 @@ function setRepresentation(type) {
             }
         });
         
-        // Add disulfide bonds as lines
+        // Add disulfide bonds
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 if (bond.x1 && bond.x2) {
-                    const shape = new $3Dmol.Shape();
-                    shape.addLine({
-                        start: {x: bond.x1, y: bond.y1, z: bond.z1},
-                        end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                        color: 0xffaa00,
-                        radius: 0.12
+                    pdbViewer.addStyle({}, {
+                        line: {
+                            start: {x: bond.x1, y: bond.y1, z: bond.z1},
+                            end: {x: bond.x2, y: bond.y2, z: bond.z2},
+                            color: 0xffaa00,
+                            linewidth: 3
+                        }
                     });
-                    const shapeId = pdbViewer.addShape(shape);
-                    currentShapes.push(shapeId);
                 }
             });
         }
@@ -1169,7 +1161,7 @@ function setRepresentation(type) {
         currentRepresentation = 'ballAndStick';
     }
     
-    pdbViewer.zoomTo();
+    pdbViewer.setView(currentView);
     pdbViewer.render();
     
     const cartoonBtn = document.getElementById('btn-cartoon');
