@@ -994,7 +994,7 @@ function findDisulfideBonds(pdbContent) {
     
     // Find pairs within S-S bond distance (1.8 - 2.3 Å)
     const bondsMap = new Map();
-    const sulfurInBonds = new Set(); // Track which cysteines participate in bonds
+    const sulfurInBonds = new Set();
     
     for (let i = 0; i < sulfurAtoms.length; i++) {
         for (let j = i + 1; j < sulfurAtoms.length; j++) {
@@ -1066,7 +1066,7 @@ function renderPDBStructure(pdbContent, pdbId) {
     pdbViewer.zoomTo();
     
     window.pdbContentCache = pdbContent;
-    window.sulfurInBonds = sulfurInBonds; // Store for use in setRepresentation
+    window.sulfurInBonds = sulfurInBonds;
     
     setRepresentation('cartoon');
 }
@@ -1086,23 +1086,21 @@ function setRepresentation(type) {
             } 
         });
         
-        // Highlight ONLY sulfur atoms that participate in disulfide bonds
+        // Highlight ONLY sulfur atoms that participate in disulfide bonds (SMALLER spheres)
         if (window.sulfurInBonds && disulfideBonds.length > 0) {
-            // For each bond, highlight the two sulfur atoms
             disulfideBonds.forEach(bond => {
-                // Highlight sulfur atom of first cysteine
+                // Smaller spheres for sulfur atoms (scale 0.2 instead of 0.35)
                 pdbViewer.addStyle({resn: "CYS", resi: bond.cys1, atom: "SG"}, { 
                     sphere: {
                         color: 0xffaa00,
-                        scale: 0.35,
+                        scale: 0.2,
                         opacity: 0.9
                     }
                 });
-                // Highlight sulfur atom of second cysteine
                 pdbViewer.addStyle({resn: "CYS", resi: bond.cys2, atom: "SG"}, { 
                     sphere: {
                         color: 0xffaa00,
-                        scale: 0.35,
+                        scale: 0.2,
                         opacity: 0.9
                     }
                 });
@@ -1112,7 +1110,7 @@ function setRepresentation(type) {
         // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
-        // Add disulfide bonds as cylinders
+        // Add disulfide bonds as cylinders (THICKER cylinders)
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach((bond) => {
                 if (bond.x1 && bond.x2) {
@@ -1120,7 +1118,7 @@ function setRepresentation(type) {
                         pdbViewer.addCylinder({
                             start: {x: bond.x1, y: bond.y1, z: bond.z1},
                             end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                            radius: 0.1,
+                            radius: 0.15,  // Increased from 0.1 to 0.15
                             color: 0xffaa00,
                             fromCap: 1,
                             toCap: 1
@@ -1142,20 +1140,20 @@ function setRepresentation(type) {
             sphere: { colorscheme: 'elem', scale: 0.25 }
         });
         
-        // Highlight ONLY sulfur atoms that participate in disulfide bonds
+        // Highlight ONLY sulfur atoms that participate in disulfide bonds (SMALLER spheres)
         if (window.sulfurInBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach(bond => {
                 pdbViewer.addStyle({resn: "CYS", resi: bond.cys1, atom: "SG"}, { 
                     sphere: {
                         color: 0xffaa00,
-                        scale: 0.45,
+                        scale: 0.25,  // Reduced from 0.45
                         opacity: 0.9
                     }
                 });
                 pdbViewer.addStyle({resn: "CYS", resi: bond.cys2, atom: "SG"}, { 
                     sphere: {
                         color: 0xffaa00,
-                        scale: 0.45,
+                        scale: 0.25,  // Reduced from 0.45
                         opacity: 0.9
                     }
                 });
@@ -1165,7 +1163,7 @@ function setRepresentation(type) {
         // Remove existing shapes before adding new ones
         pdbViewer.removeAllShapes();
         
-        // Add disulfide bonds as cylinders
+        // Add disulfide bonds as cylinders (THICKER cylinders)
         if (disulfideBonds && disulfideBonds.length > 0) {
             disulfideBonds.forEach((bond) => {
                 if (bond.x1 && bond.x2) {
@@ -1173,7 +1171,7 @@ function setRepresentation(type) {
                         pdbViewer.addCylinder({
                             start: {x: bond.x1, y: bond.y1, z: bond.z1},
                             end: {x: bond.x2, y: bond.y2, z: bond.z2},
-                            radius: 0.12,
+                            radius: 0.18,  // Increased from 0.12 to 0.18
                             color: 0xffaa00,
                             fromCap: 1,
                             toCap: 1
