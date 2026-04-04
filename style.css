@@ -523,6 +523,11 @@ td {
     border: 1px solid #cbd5e0;
 }
 
+.legend-color.disulfide {
+    background: #ffaa00;
+    border: 1px solid #cc8800;
+}
+
 .no-structure {
     text-align: center;
     padding: 1.5rem;

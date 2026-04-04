@@ -1268,7 +1268,6 @@ function displayPeptideDetail(peptide, pdbContent, pdbId) {
     <div class="legend-item"><div class="legend-color nitrogen"></div><span>Nitrogen (N)</span></div>
     <div class="legend-item"><div class="legend-color sulfur"></div><span>Sulfur (S)</span></div>
     <div class="legend-item"><div class="legend-color disulfide"></div><span>Disulfide Bridge (S-S)</span></div>
-    <div class="legend-item"><div class="legend-color cysteine"></div><span>Cysteine (C)</span></div>
 </div>
                 <div class="pdb-info">
                     <strong>PDB ID: ${pdbId || peptide.PDB || 'N/A'}</strong> | 
